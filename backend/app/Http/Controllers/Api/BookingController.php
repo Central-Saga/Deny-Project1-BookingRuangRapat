@@ -33,7 +33,7 @@ class BookingController extends Controller
         }
 
         $booking = Booking::create([
-            'user_id'    => auth()->id() ?? 1, // Fallback ke user 1 jika auth belum aktif total
+            'user_id'    => $request->user()->id,
             'room_id'    => $validated['room_id'],
             'title'      => $validated['title'],
             'start_time' => $validated['start_time'],

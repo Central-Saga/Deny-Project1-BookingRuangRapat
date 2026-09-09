@@ -16,10 +16,23 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Membuat akun user default untuk login/pengujian
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Admin MeetSpace',
+                'password' => 'password',
+                'role' => 'admin',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'karyawan@example.com'],
+            [
+                'name' => 'Karyawan MeetSpace',
+                'password' => 'password',
+                'role' => 'karyawan',
+            ]
+        );
 
         // Memanggil RoomSeeder untuk mengisi data ruangan
         $this->call([

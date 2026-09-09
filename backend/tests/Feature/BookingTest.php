@@ -14,9 +14,10 @@ class BookingTest extends TestCase
 
     public function test_can_fetch_rooms_list()
     {
+        $user = User::factory()->create();
         Room::factory()->count(3)->create(['is_active' => true]);
 
-        $response = $this->getJson('/api/v1/rooms');
+        $response = $this->actingAs($user)->getJson('/api/v1/rooms');
 
         $response->assertStatus(200)
                  ->assertJsonCount(3, 'data');
@@ -82,7 +83,7 @@ class BookingTest extends TestCase
             'status'  => 'pending',
         ]);
 
-        $response = $this->patchJson("/api/v1/bookings/{$booking->id}/cancel");
+        $response = $this->actingAs($user)->patchJson("/api/v1/bookings/{$booking->id}/cancel");
 
         $response->assertStatus(200)
                  ->assertJsonFragment(['status' => 'rejected']);
