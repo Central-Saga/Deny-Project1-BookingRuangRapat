@@ -91,3 +91,34 @@ export async function cancelBooking(id: number): Promise<void> {
     });
     if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal membatalkan pemesanan'));
 }
+
+export async function deleteBooking(id: number): Promise<void> {
+    const res = await fetch(`${API_URL}/v1/bookings/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders()
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal menghapus pemesanan'));
+}
+
+export async function getAvailability(): Promise<Booking[]> {
+    const res = await fetch(`${API_URL}/v1/bookings/availability`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal mengambil ketersediaan ruangan'));
+    const data = await res.json();
+    return data.data ?? data;
+}
+
+export async function updateBooking(id: number, payload: {
+    room_id: number;
+    title: string;
+    start_time: string;
+    end_time: string;
+    notes?: string;
+}): Promise<Booking> {
+    const res = await fetch(`${API_URL}/v1/bookings/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal memperbarui pemesanan'));
+    return res.json();
+}

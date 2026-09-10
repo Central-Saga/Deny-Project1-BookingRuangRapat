@@ -14,7 +14,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('v1')->group(function () {
         Route::get('/rooms', [RoomController::class, 'index']);
         Route::get('/bookings', [BookingController::class, 'index']);
+        Route::get('/bookings/availability', [BookingController::class, 'availability']);
         Route::post('/bookings', [BookingController::class, 'store']);
+        Route::put('/bookings/{booking}', [BookingController::class, 'update']);
         Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
+        Route::delete('/bookings/{booking}', [BookingController::class, 'destroy']);
     });
 });
