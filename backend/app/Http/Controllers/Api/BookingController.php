@@ -92,6 +92,8 @@ class BookingController extends Controller
 
     public function cancel(Booking $booking)
     {
+        abort_unless((int) $booking->user_id === (int) request()->user()->id, 403, 'Anda hanya dapat membatalkan booking milik sendiri.');
+
         $booking->update(['status' => 'rejected']);
         return new BookingResource($booking->load(['room', 'user']));
     }

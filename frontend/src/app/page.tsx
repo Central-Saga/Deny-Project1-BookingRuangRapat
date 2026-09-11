@@ -12,7 +12,19 @@ const bookingSchema = z.object({
     start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Gunakan format jam HH:mm'),
     end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Gunakan format jam HH:mm'),
     notes: z.string().max(500, 'Catatan maksimal 500 karakter').optional()
-}).refine((data) => data.end_time > data.start_time, { message: 'Jam selesai harus setelah jam mulai', path: ['end_time'] });
+}).refine((data) => data.end_time > data.start_time, { message: 'Jam selesai harus setelah jam mulai', path: ['end_time'] })
+    .refine((data) => {
+        const bookingDate = new Date(`${data.date}T00:00:00`);
+        const day = bookingDate.getDay();
+        return day !== 0 && day !== 6;
+    }, { message: 'Booking hanya dapat dilakukan Senin-Jumat', path: ['date'] })
+    .refine((data) => data.start_time >= '08:00' && data.end_time <= '17:00', {
+        message: 'Booking hanya dapat dilakukan pukul 08:00-17:00',
+        path: ['start_time']
+    });
+
+const OPERATING_START_MINUTES = 8 * 60;
+const OPERATING_END_MINUTES = 17 * 60;
 
 const statusLabels: Record<Booking['status'], string> = { pending: 'Menunggu persetujuan', approved: 'Disetujui', rejected: 'Dibatalkan' };
 
@@ -93,6 +105,25 @@ export default function Dashboard() {
         const date = new Date(value);
         const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(date);
         return Number(parts.find((part) => part.type === 'hour')?.value || 0) * 60 + Number(parts.find((part) => part.type === 'minute')?.value || 0);
+    }
+
+    function isRoomFullyBooked(roomBookings: Booking[]) {
+        const intervals = roomBookings
+            .map((booking) => [
+                Math.max(OPERATING_START_MINUTES, jakartaMinutes(booking.start_time)),
+                Math.min(OPERATING_END_MINUTES, jakartaMinutes(booking.end_time))
+            ] as const)
+            .filter(([start, end]) => end > start)
+            .sort(([firstStart], [secondStart]) => firstStart - secondStart);
+
+        let coveredUntil = OPERATING_START_MINUTES;
+        for (const [start, end] of intervals) {
+            if (start > coveredUntil) return false;
+            coveredUntil = Math.max(coveredUntil, end);
+            if (coveredUntil >= OPERATING_END_MINUTES) return true;
+        }
+
+        return false;
     }
 
     function errorMessage(errorValue: unknown, fallback: string) {
@@ -533,11 +564,11 @@ export default function Dashboard() {
                         <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#f57c00]">Ruangan tersedia</p><h2 className="text-2xl font-bold text-white">Ruangan & ketersediaan</h2><p className="mt-1 text-sm text-emerald-100/70">Lihat kapasitas ruangan dan jam yang sudah terisi sebelum membuat booking.</p></div>
                         <div className="flex flex-wrap gap-2"><input type="date" value={availabilityDate} min={today} onChange={(event) => setAvailabilityDate(event.target.value)} className="rounded-lg border border-emerald-800 bg-emerald-950/60 px-3 py-2 text-xs text-white outline-none focus:border-[#f57c00] [color-scheme:dark]" /><select value={availabilityRoomId} onChange={(event) => setAvailabilityRoomId(event.target.value)} className="rounded-lg border border-emerald-800 bg-emerald-950/60 px-3 py-2 text-xs text-white outline-none focus:border-[#f57c00]"><option value="all" className="bg-[#0b3524]">Semua ruangan</option>{activeRooms.map((room) => <option key={room.id} value={room.id} className="bg-[#0b3524]">{room.name}</option>)}</select></div>
                     </div>
-                    <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{activeRooms.map((room) => <div key={room.id} className="rounded-xl border border-emerald-900 bg-emerald-900/20 p-4 transition hover:border-[#f57c00]/50 hover:bg-emerald-900/40"><div className="mb-4 flex items-center justify-between"><span className="rounded-lg bg-emerald-500/10 p-2 text-emerald-300"><Icon name="door" className="h-5 w-5" /></span><span className="text-[11px] font-semibold text-emerald-400">Tersedia</span></div><h3 className="font-bold text-white">{room.name}</h3><div className="mt-2 flex items-center gap-2 text-xs text-emerald-100/70"><span>{room.location || 'Lokasi belum diatur'}</span><span className="text-emerald-700">|</span><span className="flex items-center gap-1"><Icon name="users" className="h-3.5 w-3.5" />{room.capacity}</span></div></div>)}</div>
+                    <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{activeRooms.map((room) => { const roomBookings = availabilityForDay.filter((booking) => booking.room_id === room.id); const isFull = isRoomFullyBooked(roomBookings); return <div key={room.id} className="rounded-xl border border-emerald-900 bg-emerald-900/20 p-4 transition hover:border-[#f57c00]/50 hover:bg-emerald-900/40"><div className="mb-4 flex items-center justify-between"><span className={`rounded-lg p-2 ${isFull ? 'bg-rose-500/10 text-rose-300' : 'bg-emerald-500/10 text-emerald-300'}`}><Icon name="door" className="h-5 w-5" /></span><span className={`text-[11px] font-semibold ${isFull ? 'text-rose-300' : 'text-emerald-400'}`}>{isFull ? 'Full' : 'Tersedia'}</span></div><h3 className="font-bold text-white">{room.name}</h3><div className="mt-2 flex items-center gap-2 text-xs text-emerald-100/70"><span>{room.location || 'Lokasi belum diatur'}</span><span className="text-emerald-700">|</span><span className="flex items-center gap-1"><Icon name="users" className="h-3.5 w-3.5" />{room.capacity}</span></div></div>; })}</div>
                     <div className="mb-4 border-t border-emerald-900 pt-6"><p className="text-sm font-semibold text-white">Timeline penggunaan ruangan</p><p className="mt-1 text-xs text-emerald-100/60">Blok oranye menandakan jam yang sudah terisi.</p></div>
                     <div className="mb-3 flex items-center gap-4 text-[11px] text-emerald-100/60"><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#f57c00]" /> Terisi</span><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm border border-dashed border-emerald-400" /> Kosong</span></div>
                     {availabilityForDay.length === 0 && <div className="mb-3 rounded-lg border border-dashed border-emerald-800 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-100/60">Belum ada booking pada tanggal ini. Semua baris ruangan masih kosong.</div>}
-                    <div className="overflow-x-auto"><div className="min-w-[720px]"><div className="mb-2 ml-28 flex justify-between text-[10px] font-semibold text-emerald-100/60"><span>07.00</span><span>09.00</span><span>11.00</span><span>13.00</span><span>15.00</span><span>17.00</span><span>19.00</span><span>21.00</span></div><div className="space-y-3">{(availabilityRoomId === 'all' ? activeRooms : activeRooms.filter((room) => String(room.id) === availabilityRoomId)).map((room) => { const roomBookings = availabilityForDay.filter((booking) => booking.room_id === room.id); return <div key={room.id} className="flex items-center gap-3"><div className="w-25 shrink-0 truncate text-xs font-semibold text-white">{room.name}</div><div className="relative h-12 flex-1 rounded-lg border border-dashed border-emerald-700 bg-emerald-950/30"><div className="absolute inset-0 grid grid-cols-7 divide-x divide-emerald-800/60" />{roomBookings.length === 0 && <span className="absolute left-3 top-3 text-[10px] text-emerald-100/40">Belum terisi</span>}{roomBookings.map((booking) => { const start = Math.max(420, jakartaMinutes(booking.start_time)); const end = Math.min(1260, jakartaMinutes(booking.end_time)); const left = ((start - 420) / 840) * 100; const width = Math.max(((end - start) / 840) * 100, 2); return <div key={booking.id} title={`${booking.title} · ${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}`} className="absolute top-1.5 h-9 overflow-hidden rounded-md bg-[#f57c00] px-2 py-1 text-[10px] font-bold text-slate-950 shadow-sm" style={{ left: `${left}%`, width: `${width}%` }}><span className="block truncate">{booking.title}</span><span className="block text-[9px] font-medium">{formatTime(booking.start_time)}–{formatTime(booking.end_time)}</span></div>; })}</div></div>; })}</div></div></div>
+                    <div className="overflow-x-auto"><div className="min-w-[720px]"><div className="mb-2 ml-28 flex justify-between text-[10px] font-semibold text-emerald-100/60"><span>08.00</span><span>10.00</span><span>12.00</span><span>14.00</span><span>16.00</span><span>17.00</span></div><div className="space-y-3">{(availabilityRoomId === 'all' ? activeRooms : activeRooms.filter((room) => String(room.id) === availabilityRoomId)).map((room) => { const roomBookings = availabilityForDay.filter((booking) => booking.room_id === room.id); return <div key={room.id} className="flex items-center gap-3"><div className="w-25 shrink-0 truncate text-xs font-semibold text-white">{room.name}</div><div className="relative h-12 flex-1 rounded-lg border border-dashed border-emerald-700 bg-emerald-950/30"><div className="absolute inset-0 grid grid-cols-5 divide-x divide-emerald-800/60" />{roomBookings.length === 0 && <span className="absolute left-3 top-3 text-[10px] text-emerald-100/40">Belum terisi</span>}{roomBookings.map((booking) => { const start = Math.max(OPERATING_START_MINUTES, jakartaMinutes(booking.start_time)); const end = Math.min(OPERATING_END_MINUTES, jakartaMinutes(booking.end_time)); const left = ((start - OPERATING_START_MINUTES) / (OPERATING_END_MINUTES - OPERATING_START_MINUTES)) * 100; const width = Math.max(((end - start) / (OPERATING_END_MINUTES - OPERATING_START_MINUTES)) * 100, 2); return <div key={booking.id} title={`${booking.title} · ${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}`} className="absolute top-1.5 h-9 overflow-hidden rounded-md bg-[#f57c00] px-2 py-1 text-[10px] font-bold text-slate-950 shadow-sm" style={{ left: `${left}%`, width: `${width}%` }}><span className="block truncate">{booking.title}</span><span className="block text-[9px] font-medium">{formatTime(booking.start_time)}–{formatTime(booking.end_time)}</span></div>; })}</div></div>; })}</div></div></div>
                 </section>
             </main>
         </div>
