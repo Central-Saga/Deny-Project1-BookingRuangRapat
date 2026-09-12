@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { cancelBooking, clearToken, createBooking, deleteBooking, getAvailability, getBookings, getCurrentUser, getRooms, login, logout, saveToken, updateBooking } from '@/services/api';
 import { Booking, Room, User } from '@/types';
 import { bookingSchema } from '@/lib/validations/bookingSchema';
@@ -45,7 +47,6 @@ export default function Dashboard() {
     const [submitting, setSubmitting] = useState(false);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [activeNav, setActiveNav] = useState('beranda');
     const [deleteTarget, setDeleteTargetState] = useState<Booking | null>(null);
     const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
@@ -57,6 +58,12 @@ export default function Dashboard() {
         const [availabilityDate, setAvailabilityDate] = useState(new Date().toISOString().split('T')[0]);
         const [availabilityRoomId, setAvailabilityRoomId] = useState('all');
     const [formData, setFormData] = useState({ room_id: '', title: '', date: '', start_time: '', end_time: '', notes: '' });
+    const pathname = usePathname();
+    const currentPage = pathname === '/' ? 'dashboard' : pathname.slice(1);
+    const showDashboard = currentPage === 'dashboard';
+    const showRooms = currentPage === 'ruangan';
+    const showSchedule = currentPage === 'jadwal';
+    const showHistory = currentPage === 'riwayat';
 
     const activeRooms = useMemo(() => rooms.filter((room) => room.is_active), [rooms]);
     const activeBookings = useMemo(() => bookings.filter((booking) => booking.status !== 'rejected'), [bookings]);
@@ -434,12 +441,6 @@ export default function Dashboard() {
                             <p className="hidden text-[11px] text-emerald-200/50 sm:block">Portal ruang rapat karyawan</p>
                         </div>
                     </div>
-                    <nav className="hidden items-center gap-8 text-sm font-medium text-emerald-100/80 md:flex">
-                        <a href="#beranda" onClick={() => setActiveNav('beranda')} className={`border-b-2 py-2 transition ${activeNav === 'beranda' ? 'border-[#f57c00] text-[#f57c00]' : 'border-transparent hover:border-[#f57c00] hover:text-[#f57c00]'}`}>Beranda</a>
-                        <a href="#ruangan-tersedia" onClick={() => setActiveNav('ruangan')} className={`border-b-2 py-2 transition ${activeNav === 'ruangan' ? 'border-[#f57c00] text-[#f57c00]' : 'border-transparent hover:border-[#f57c00] hover:text-[#f57c00]'}`}>Ruangan Tersedia</a>
-                        <a href="#jadwal-booking" onClick={() => setActiveNav('jadwal')} className={`border-b-2 py-2 transition ${activeNav === 'jadwal' ? 'border-[#f57c00] text-[#f57c00]' : 'border-transparent hover:border-[#f57c00] hover:text-[#f57c00]'}`}>Jadwal Booking</a>
-                        <a href="#riwayat-booking" onClick={() => setActiveNav('riwayat')} className={`border-b-2 py-2 transition ${activeNav === 'riwayat' ? 'border-[#f57c00] text-[#f57c00]' : 'border-transparent hover:border-[#f57c00] hover:text-[#f57c00]'}`}>Riwayat Booking</a>
-                    </nav>
                     <div className="flex items-center gap-3">
                         <div className="hidden text-right sm:block">
                             <p className="text-sm font-bold text-white">{user.name}</p>
@@ -451,8 +452,25 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            <main id="beranda" className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:py-12">
-                <div className="mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <aside className="fixed inset-x-0 top-[72px] z-10 border-b border-emerald-900/80 bg-[#0d2822]/95 backdrop-blur lg:bottom-0 lg:right-auto lg:w-64 lg:border-b-0 lg:border-r">
+                <nav aria-label="Navigasi utama" className="mx-auto flex max-w-[1440px] gap-2 overflow-x-auto px-5 py-3 sm:px-8 lg:block lg:px-4 lg:py-8">
+                    {[
+                        { href: '/dashboard', label: 'Beranda', icon: 'calendar' as const, active: showDashboard },
+                        { href: '/ruangan', label: 'Ruangan Tersedia', icon: 'door' as const, active: showRooms },
+                        { href: '/jadwal', label: 'Jadwal Booking', icon: 'clock' as const, active: showSchedule },
+                        { href: '/riwayat', label: 'Riwayat Booking', icon: 'refresh' as const, active: showHistory },
+                    ].map((item) => (
+                        <Link key={item.href} href={item.href} className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition lg:mb-2 ${item.active ? 'bg-[#f57c00] text-slate-950' : 'text-emerald-100/70 hover:bg-emerald-900/60 hover:text-white'}`}>
+                            <Icon name={item.icon} className="h-5 w-5" />
+                            {item.label}
+                        </Link>
+                    ))}
+                </nav>
+            </aside>
+
+            <main id="beranda" className="mx-auto max-w-[1440px] px-5 pb-8 pt-24 sm:px-8 lg:pl-72 lg:pt-12 lg:pr-12">
+                {showDashboard && <>
+                <div className="mb-12 grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
                     <div>
                         <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#f57c00]">Dashboard karyawan</p>
                         <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white leading-tight">Booking Cepat, <span className="text-[#f57c00]">Kolaborasi Hebat</span></h1>
@@ -494,8 +512,9 @@ export default function Dashboard() {
                         <p className="mt-1 text-xs text-emerald-200/50">sepanjang waktu</p>
                     </div>
                 </section>
+                </>}
 
-                <section id="ruangan-tersedia" className="mb-10 rounded-2xl border border-emerald-900 bg-emerald-950/30 p-6 shadow-sm backdrop-blur sm:p-8">
+                {showRooms && <section id="ruangan-tersedia" className="mb-10 rounded-2xl border border-emerald-900 bg-emerald-950/30 p-6 shadow-sm backdrop-blur sm:p-8">
                     <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
                         <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#f57c00]">Ruangan tersedia</p><h2 className="text-2xl font-bold text-white">Ruangan & ketersediaan</h2><p className="mt-1 text-sm text-emerald-100/70">Lihat kapasitas ruangan dan jam yang sudah terisi sebelum membuat booking.</p></div>
                         <div className="flex flex-wrap gap-2"><input type="date" value={availabilityDate} min={today} onChange={(event) => setAvailabilityDate(event.target.value)} className="rounded-lg border border-emerald-800 bg-emerald-950/60 px-3 py-2 text-xs text-white outline-none focus:border-[#f57c00] [color-scheme:dark]" /><select value={availabilityRoomId} onChange={(event) => setAvailabilityRoomId(event.target.value)} className="rounded-lg border border-emerald-800 bg-emerald-950/60 px-3 py-2 text-xs text-white outline-none focus:border-[#f57c00]"><option value="all" className="bg-[#0b3524]">Semua ruangan</option>{activeRooms.map((room) => <option key={room.id} value={room.id} className="bg-[#0b3524]">{room.name}</option>)}</select></div>
@@ -505,11 +524,11 @@ export default function Dashboard() {
                     <div className="mb-3 flex items-center gap-4 text-[11px] text-emerald-100/60"><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#f57c00]" /> Terisi</span><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm border border-dashed border-emerald-400" /> Kosong</span></div>
                     {availabilityForDay.length === 0 && <div className="mb-3 rounded-lg border border-dashed border-emerald-800 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-100/60">Belum ada booking pada tanggal ini. Semua baris ruangan masih kosong.</div>}
                     <div className="overflow-x-auto"><div className="min-w-[720px]"><div className="mb-2 ml-28 flex justify-between text-[10px] font-semibold text-emerald-100/60"><span>08.00</span><span>10.00</span><span>12.00</span><span>14.00</span><span>16.00</span><span>17.00</span></div><div className="space-y-3">{(availabilityRoomId === 'all' ? activeRooms : activeRooms.filter((room) => String(room.id) === availabilityRoomId)).map((room) => { const roomBookings = availabilityForDay.filter((booking) => booking.room_id === room.id); return <div key={room.id} className="flex items-center gap-3"><div className="w-25 shrink-0 truncate text-xs font-semibold text-white">{room.name}</div><div className="relative h-12 flex-1 rounded-lg border border-dashed border-emerald-700 bg-emerald-950/30"><div className="absolute inset-0 grid grid-cols-5 divide-x divide-emerald-800/60" />{roomBookings.length === 0 && <span className="absolute left-3 top-3 text-[10px] text-emerald-100/40">Belum terisi</span>}{roomBookings.map((booking) => { const start = Math.max(OPERATING_START_MINUTES, jakartaMinutes(booking.start_time)); const end = Math.min(OPERATING_END_MINUTES, jakartaMinutes(booking.end_time)); const left = ((start - OPERATING_START_MINUTES) / (OPERATING_END_MINUTES - OPERATING_START_MINUTES)) * 100; const width = Math.max(((end - start) / (OPERATING_END_MINUTES - OPERATING_START_MINUTES)) * 100, 2); return <div key={booking.id} title={`${booking.title} · ${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}`} className="absolute top-1.5 h-9 overflow-hidden rounded-md bg-[#f57c00] px-2 py-1 text-[10px] font-bold text-slate-950 shadow-sm" style={{ left: `${left}%`, width: `${width}%` }}><span className="block truncate">{booking.title}</span><span className="block text-[9px] font-medium">{formatTime(booking.start_time)}–{formatTime(booking.end_time)}</span></div>; })}</div></div>; })}</div></div></div>
-                </section>
+                </section>}
 
-                <BookingCalendar bookings={availabilityBookings} onSelectDate={handleCalendarDateSelect} onSelectBooking={startEditing} />
+                {showSchedule && <BookingCalendar bookings={availabilityBookings} onSelectDate={handleCalendarDateSelect} onSelectBooking={startEditing} />}
 
-                <div className="mt-8 grid grid-cols-1 gap-8">
+                {showHistory && <div className="mt-8 grid grid-cols-1 gap-8">
                     <section id="booking-form" className="hidden rounded-2xl border border-emerald-900 bg-emerald-950/30 p-6 shadow-sm backdrop-blur sm:p-8">
                         <div className="mb-6 border-b border-emerald-900 pb-5">
                             <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#f59e0b]">{editingBooking ? 'Edit booking' : 'Booking baru'}</p>
@@ -611,7 +630,7 @@ export default function Dashboard() {
                             </div>
                         )}
                     </section>
-                </div>
+                </div>}
 
             </main>
         </div>
