@@ -33,3 +33,4 @@ class Room extends Model
         return $this->hasMany(Booking::class);
     }
 }
+// Cast facilities to array for 65-parameter standard
