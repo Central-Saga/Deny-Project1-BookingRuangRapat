@@ -5,6 +5,7 @@ import { Booking } from '@/types';
 
 interface BookingCalendarProps {
     bookings: Booking[];
+    loading?: boolean;
     onSelectDate: (date: string) => void;
     onSelectBooking: (booking: Booking) => void;
 }
@@ -28,7 +29,7 @@ function isSelectableDate(key: string, today: string): boolean {
     return key >= today && date.getDay() !== 0 && date.getDay() !== 6;
 }
 
-export default function BookingCalendar({ bookings, onSelectDate, onSelectBooking }: BookingCalendarProps) {
+export default function BookingCalendar({ bookings, loading = false, onSelectDate, onSelectBooking }: BookingCalendarProps) {
     const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
     const today = dateKey(new Date());
     const days = useMemo(() => {
@@ -64,6 +65,8 @@ export default function BookingCalendar({ bookings, onSelectDate, onSelectBookin
             <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-bold uppercase tracking-wider text-emerald-200/60">
                 {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day) => <span key={day} className="py-2">{day}</span>)}
             </div>
+            {loading && <div className="mb-3 grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-emerald-900 bg-emerald-900/40" aria-label="Memuat kalender"><span className="col-span-7 h-8 animate-pulse bg-emerald-900/40" /><span className="col-span-7 h-8 animate-pulse bg-emerald-900/25" /><span className="col-span-7 h-8 animate-pulse bg-emerald-900/40" /></div>}
+            {!loading && bookings.length === 0 && <div className="mb-3 rounded-xl border border-dashed border-emerald-800 bg-emerald-950/20 px-6 py-8 text-center"><div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#f57c00]/15 text-2xl">&#128197;</div><p className="text-sm font-semibold text-white">Tidak ada agenda rapat pada tanggal ini</p><p className="mt-1 text-xs text-emerald-100/60">Pilih tanggal kerja untuk membuat booking baru.</p></div>}
             <div className="grid grid-cols-7 overflow-hidden rounded-xl border border-emerald-900">
                 {days.map((day) => {
                     const key = dateKey(day);

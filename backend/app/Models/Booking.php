@@ -14,10 +14,13 @@ class Booking extends Model
         'user_id',
         'room_id',
         'title',
+        'participant_count',
         'start_time',
         'end_time',
         'status',
         'notes',
+        'cancellation_reason',
+        'approval_notes',
     ];
 
     protected function casts(): array
@@ -25,6 +28,7 @@ class Booking extends Model
         return [
             'start_time' => 'datetime',
             'end_time'   => 'datetime',
+            'participant_count' => 'integer',
         ];
     }
 

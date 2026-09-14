@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const bookingSchema = z.object({
     room_id: z.string().min(1, 'Pilih ruangan terlebih dahulu'),
     title: z.string().min(3, 'Judul rapat minimal 3 karakter'),
+    participant_count: z.string().regex(/^[1-9]\d*$/, 'Jumlah peserta minimal 1'),
     date: z.string().min(1, 'Pilih tanggal rapat'),
     start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Gunakan format jam HH:mm'),
     end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Gunakan format jam HH:mm'),

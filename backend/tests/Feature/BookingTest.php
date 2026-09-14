@@ -32,6 +32,7 @@ class BookingTest extends TestCase
         $payload = [
             'room_id'    => $room->id,
             'title'      => 'Rapat Koordinasi Tim',
+            'participant_count' => 2,
             'start_time' => now()->addHour()->toDateTimeString(),
             'end_time'   => now()->addHours(2)->toDateTimeString(),
             'notes'      => 'Catatan penting rapat.',
@@ -49,8 +50,8 @@ class BookingTest extends TestCase
         $room = Room::factory()->create(['is_active' => true]);
 
         // Menggunakan waktu di masa depan agar lolos validasi 'after:now'
-        $startTime = now()->addDays(5);
-        $endTime = now()->addDays(5)->addHours(2);
+        $startTime = now()->nextWeekday()->setTime(10, 0);
+        $endTime = $startTime->copy()->addHours(2);
 
         Booking::create([
             'user_id'    => $user->id,
@@ -64,6 +65,7 @@ class BookingTest extends TestCase
         $payload = [
             'room_id'    => $room->id,
             'title'      => 'Booking Bentrok',
+            'participant_count' => 2,
             'start_time' => (clone $startTime)->addHour()->toDateTimeString(),
             'end_time'   => (clone $endTime)->addHour()->toDateTimeString(),
         ];
@@ -71,9 +73,8 @@ class BookingTest extends TestCase
         $response = $this->actingAs($user)->postJson('/api/v1/bookings', $payload);
 
         $response->assertStatus(422)
-                 ->assertJson([
-                     'message' => 'Ruangan sudah dibooking pada jadwal tersebut.',
-                 ]);
+                 ->assertJsonPath('status', false)
+                 ->assertJsonPath('message', 'Ruangan sudah dibooking pada jadwal tersebut.');
     }
 
     public function test_user_can_cancel_booking()
@@ -84,7 +85,9 @@ class BookingTest extends TestCase
             'status'  => 'pending',
         ]);
 
-        $response = $this->actingAs($user)->patchJson("/api/v1/bookings/{$booking->id}/cancel");
+        $response = $this->actingAs($user)->patchJson("/api/v1/bookings/{$booking->id}/cancel", [
+            'cancellation_reason' => 'Jadwal rapat berubah total.',
+        ]);
 
         $response->assertStatus(200)
                  ->assertJsonFragment(['status' => 'rejected']);
@@ -123,21 +126,23 @@ class BookingTest extends TestCase
         $response = $this->actingAs($user)->postJson('/api/v1/bookings', [
             'room_id' => $room->id,
             'title' => 'Booking di luar jadwal',
+            'participant_count' => 2,
             'start_time' => $weekend->toDateTimeString(),
             'end_time' => $weekend->copy()->addHour()->toDateTimeString(),
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('start_time');
+        $response->assertStatus(422)->assertJsonPath('status', false)->assertJsonPath('errors.0.field', 'start_time');
 
         $beforeWorkday = Carbon::now()->next(Carbon::MONDAY)->setTime(7, 0);
         $response = $this->actingAs($user)->postJson('/api/v1/bookings', [
             'room_id' => $room->id,
             'title' => 'Booking sebelum jam kerja',
+            'participant_count' => 2,
             'start_time' => $beforeWorkday->toDateTimeString(),
             'end_time' => $beforeWorkday->copy()->addHour()->toDateTimeString(),
         ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors('start_time');
+        $response->assertStatus(422)->assertJsonPath('status', false)->assertJsonPath('errors.0.field', 'start_time');
     }
 
     public function test_employee_cannot_cancel_another_users_booking()
@@ -145,12 +150,63 @@ class BookingTest extends TestCase
         $employee = User::factory()->create(['role' => 'karyawan']);
         $booking = Booking::factory()->create(['status' => 'pending']);
 
-        $response = $this->actingAs($employee)->patchJson("/api/v1/bookings/{$booking->id}/cancel");
+        $response = $this->actingAs($employee)->patchJson("/api/v1/bookings/{$booking->id}/cancel", [
+            'cancellation_reason' => 'Rapat dipindahkan ke jadwal lain.',
+        ]);
 
         $response->assertForbidden();
         $this->assertDatabaseHas('bookings', [
             'id' => $booking->id,
             'status' => 'pending',
         ]);
+    }
+
+    public function test_booking_rejects_participants_over_room_capacity(): void
+    {
+        $user = User::factory()->create();
+        $room = Room::factory()->create(['capacity' => 5, 'is_active' => true]);
+        $start = now()->nextWeekday()->setTime(10, 0);
+
+        $response = $this->actingAs($user)->postJson('/api/v1/bookings', [
+            'room_id' => $room->id,
+            'title' => 'Rapat Kapasitas',
+            'participant_count' => 12,
+            'start_time' => $start->toDateTimeString(),
+            'end_time' => $start->copy()->addHour()->toDateTimeString(),
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('status', false)
+            ->assertJsonPath('errors.0.field', 'participant_count');
+    }
+
+    public function test_booking_index_can_filter_by_date(): void
+    {
+        $user = User::factory()->create();
+        $target = now()->nextWeekday()->setTime(10, 0);
+        $booking = Booking::factory()->create(['user_id' => $user->id, 'start_time' => $target, 'end_time' => $target->copy()->addHour()]);
+        Booking::factory()->create(['user_id' => $user->id, 'start_time' => $target->copy()->addDay(), 'end_time' => $target->copy()->addDay()->addHour()]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/bookings?date=' . $target->toDateString());
+
+        $response->assertOk()->assertJsonCount(1, 'data')->assertJsonFragment(['id' => $booking->id]);
+    }
+
+    public function test_soft_deleted_room_cannot_be_booked(): void
+    {
+        $user = User::factory()->create();
+        $room = Room::factory()->create(['is_active' => true]);
+        $room->delete();
+        $start = now()->nextWeekday()->setTime(10, 0);
+
+        $response = $this->actingAs($user)->postJson('/api/v1/bookings', [
+            'room_id' => $room->id,
+            'title' => 'Rapat Room Deleted',
+            'participant_count' => 1,
+            'start_time' => $start->toDateTimeString(),
+            'end_time' => $start->copy()->addHour()->toDateTimeString(),
+        ]);
+
+        $response->assertStatus(422)->assertJsonPath('status', false)->assertJsonPath('errors.0.field', 'room_id');
     }
 }

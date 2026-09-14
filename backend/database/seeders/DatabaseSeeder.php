@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Admin MeetSpace',
                 'password' => 'password',
                 'role' => 'admin',
+                'status' => 'active',
             ]
         );
 
@@ -31,6 +32,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Karyawan MeetSpace',
                 'password' => 'password',
                 'role' => 'karyawan',
+                'status' => 'active',
             ]
         );
 

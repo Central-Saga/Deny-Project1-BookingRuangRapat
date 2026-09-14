@@ -17,7 +17,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        if (!$user || $user->status !== 'active' || !Hash::check($credentials['password'], $user->password)) {
             return response()->json([
                 'message' => 'Email atau password salah.'
             ], 401);

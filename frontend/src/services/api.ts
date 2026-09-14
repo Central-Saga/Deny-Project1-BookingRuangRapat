@@ -59,6 +59,50 @@ export async function getRooms(): Promise<Room[]> {
     return data.data ?? data;
 }
 
+export async function createRoom(payload: {
+    name: string;
+    capacity: number;
+    location: string;
+    description?: string;
+    facilities?: string[];
+    is_active: boolean;
+}): Promise<Room> {
+    const res = await fetch(`${API_URL}/v1/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal menambahkan ruangan'));
+    const data = await res.json();
+    return data.data ?? data;
+}
+
+export async function updateRoom(id: number, payload: {
+    name: string;
+    capacity: number;
+    location: string;
+    facilities?: string[];
+    description?: string;
+    is_active: boolean;
+}): Promise<Room> {
+    const res = await fetch(`${API_URL}/v1/rooms/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal memperbarui ruangan'));
+    const data = await res.json();
+    return data.data ?? data;
+}
+
+export async function deleteRoom(id: number): Promise<void> {
+    const res = await fetch(`${API_URL}/v1/rooms/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders()
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal menonaktifkan ruangan'));
+}
+
 export async function getBookings(): Promise<Booking[]> {
     const res = await fetch(`${API_URL}/v1/bookings`, { headers: authHeaders() });
     if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal mengambil data pemesanan'));
@@ -66,9 +110,53 @@ export async function getBookings(): Promise<Booking[]> {
     return data.data ?? data;
 }
 
+export async function getUsers(): Promise<User[]> {
+    const res = await fetch(`${API_URL}/v1/users`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal mengambil data pengguna'));
+    const data = await res.json();
+    return data.data ?? data;
+}
+
+export async function updateUser(id: number, payload: { role: User['role']; status: User['status'] }): Promise<User> {
+    const res = await fetch(`${API_URL}/v1/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal memperbarui pengguna'));
+    const data = await res.json();
+    return data.data ?? data;
+}
+
+async function updateBookingStatus(id: number, action: 'approve' | 'reject'): Promise<Booking> {
+    const res = await fetch(`${API_URL}/v1/bookings/${id}/${action}`, {
+        method: 'PATCH',
+        headers: authHeaders()
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, `Gagal ${action === 'approve' ? 'menyetujui' : 'menolak'} booking`));
+    const data = await res.json();
+    return data.data ?? data;
+}
+
+export function approveBooking(id: number): Promise<Booking> {
+    return updateBookingStatus(id, 'approve');
+}
+
+export async function rejectBooking(id: number, approval_notes: string): Promise<Booking> {
+    const res = await fetch(`${API_URL}/v1/bookings/${id}/reject`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ approval_notes })
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal menolak booking'));
+    const data = await res.json();
+    return data.data ?? data;
+}
+
 export async function createBooking(payload: {
     room_id: number;
     title: string;
+    participant_count: number;
     start_time: string;
     end_time: string;
     notes?: string;
@@ -84,10 +172,11 @@ export async function createBooking(payload: {
     return res.json();
 }
 
-export async function cancelBooking(id: number): Promise<void> {
+export async function cancelBooking(id: number, cancellation_reason: string): Promise<void> {
     const res = await fetch(`${API_URL}/v1/bookings/${id}/cancel`, {
         method: 'PATCH',
-        headers: authHeaders()
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ cancellation_reason })
     });
     if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal membatalkan pemesanan'));
 }
@@ -110,6 +199,7 @@ export async function getAvailability(): Promise<Booking[]> {
 export async function updateBooking(id: number, payload: {
     room_id: number;
     title: string;
+    participant_count: number;
     start_time: string;
     end_time: string;
     notes?: string;
@@ -122,3 +212,4 @@ export async function updateBooking(id: number, payload: {
     if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal memperbarui pemesanan'));
     return res.json();
 }
+

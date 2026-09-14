@@ -10,21 +10,34 @@ class RoomSeeder extends Seeder
     public function run(): void
     {
         Room::updateOrCreate(
-            ['name' => 'Ruang Innovation'],
+            ['name' => 'Ruang Rapat Utama'],
             [
-                'capacity' => 10,
-                'location' => 'Lantai 2',
-                'description' => 'Dilengkapi proyektor dan whiteboard.',
+                'capacity' => 20,
+                'location' => 'Lantai 1',
+                'facilities' => ['Proyektor', 'Whiteboard', 'Video Conference'],
+                'description' => 'Ruang utama untuk rapat lintas divisi.',
                 'is_active' => true,
             ]
         );
 
         Room::updateOrCreate(
-            ['name' => 'Ruang Executive'],
+            ['name' => 'Ruang Diskusi'],
             [
-                'capacity' => 20,
+                'capacity' => 8,
+                'location' => 'Lantai 2',
+                'facilities' => ['Whiteboard', 'TV Display'],
+                'description' => 'Ruang kecil untuk diskusi tim.',
+                'is_active' => true,
+            ]
+        );
+
+        Room::updateOrCreate(
+            ['name' => 'Jineng Meet'],
+            [
+                'capacity' => 12,
                 'location' => 'Lantai 3',
-                'description' => 'Fasilitas Smart TV dan Video Conference.',
+                'facilities' => ['Proyektor', 'Papan Tulis', 'Kamera Meeting'],
+                'description' => 'Ruang rapat fleksibel untuk kolaborasi.',
                 'is_active' => true,
             ]
         );

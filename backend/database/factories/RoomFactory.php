@@ -15,6 +15,7 @@ class RoomFactory extends Factory
             'name'        => $this->faker->unique()->word . ' Meeting Room',
             'capacity'    => $this->faker->numberBetween(5, 50),
             'location'    => 'Lantai ' . $this->faker->randomDigitNotNull,
+            'facilities'  => ['Proyektor', 'Whiteboard'],
             'description' => $this->faker->sentence(),
             'is_active'   => true,
         ];

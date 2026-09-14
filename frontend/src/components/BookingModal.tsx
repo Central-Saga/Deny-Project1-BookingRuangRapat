@@ -14,7 +14,7 @@ interface BookingModalProps {
     onSaved: () => Promise<void>;
 }
 
-const emptyForm: BookingFormValues = { room_id: '', title: '', date: '', start_time: '', end_time: '', notes: '' };
+const emptyForm: BookingFormValues = { room_id: '', title: '', participant_count: '1', date: '', start_time: '', end_time: '', notes: '' };
 
 function valuesFromBooking(booking: Booking | null, date: string): BookingFormValues {
     if (!booking) return { ...emptyForm, date };
@@ -23,6 +23,7 @@ function valuesFromBooking(booking: Booking | null, date: string): BookingFormVa
     return {
         room_id: String(booking.room_id),
         title: booking.title,
+        participant_count: String(booking.participant_count),
         date: start.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }),
         start_time: start.toLocaleTimeString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }),
         end_time: end.toLocaleTimeString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }),
@@ -60,6 +61,7 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
             const payload = {
                 room_id: Number(form.room_id),
                 title: form.title.trim(),
+                participant_count: Number(form.participant_count),
                 start_time: `${form.date}T${form.start_time}:00+07:00`,
                 end_time: `${form.date}T${form.end_time}:00+07:00`,
                 notes: form.notes?.trim() || undefined
@@ -89,6 +91,7 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div><label htmlFor="modal-room" className="mb-2 block text-sm font-semibold text-emerald-100">Pilih ruangan</label><select id="modal-room" value={form.room_id} onChange={(event) => updateField('room_id', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]"><option value="">Pilih ruangan yang tersedia</option>{rooms.map((room) => <option key={room.id} value={room.id}>{room.name} · {room.capacity} orang</option>)}</select><FieldError message={errors.room_id} /></div>
                 <div><label htmlFor="modal-title" className="mb-2 block text-sm font-semibold text-emerald-100">Nama agenda</label><input id="modal-title" value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Contoh: Weekly product sync" className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white" /><FieldError message={errors.title} /></div>
+                <div><label htmlFor="modal-participants" className="mb-2 block text-sm font-semibold text-emerald-100">Jumlah peserta</label><input id="modal-participants" type="number" min="1" value={form.participant_count} onChange={(event) => updateField('participant_count', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white" /><FieldError message={errors.participant_count} /></div>
                 <div><label htmlFor="modal-date" className="mb-2 block text-sm font-semibold text-emerald-100">Tanggal</label><input id="modal-date" type="date" min={new Date().toISOString().split('T')[0]} value={form.date} onChange={(event) => updateField('date', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]" /><FieldError message={errors.date} /></div>
                 <div className="grid grid-cols-2 gap-3"><div><label htmlFor="modal-start" className="mb-2 block text-sm font-semibold text-emerald-100">Mulai</label><input id="modal-start" type="time" value={form.start_time} onChange={(event) => updateField('start_time', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]" /><FieldError message={errors.start_time} /></div><div><label htmlFor="modal-end" className="mb-2 block text-sm font-semibold text-emerald-100">Selesai</label><input id="modal-end" type="time" value={form.end_time} onChange={(event) => updateField('end_time', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]" /><FieldError message={errors.end_time} /></div></div>
                 <div><label htmlFor="modal-notes" className="mb-2 block text-sm font-semibold text-emerald-100">Catatan <span className="font-normal text-emerald-200/50">(opsional)</span></label><textarea id="modal-notes" rows={3} maxLength={500} value={form.notes} onChange={(event) => updateField('notes', event.target.value)} className="w-full resize-none rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white" /><FieldError message={errors.notes} /></div>

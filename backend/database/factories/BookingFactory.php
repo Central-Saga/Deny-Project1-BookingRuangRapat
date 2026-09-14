@@ -17,10 +17,12 @@ class BookingFactory extends Factory
             'user_id'    => User::factory(),
             'room_id'    => Room::factory(),
             'title'      => $this->faker->sentence(3),
+            'participant_count' => 2,
             'start_time' => now()->addDays(1),
             'end_time'   => now()->addDays(1)->addHours(2),
             'status'     => 'pending',
             'notes'      => $this->faker->optional()->sentence(),
+            'cancellation_reason' => null,
         ];
     }
 }
