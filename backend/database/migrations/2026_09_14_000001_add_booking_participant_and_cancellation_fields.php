@@ -28,4 +28,4 @@ return new class extends Migration
             $table->dropColumn(['participant_count', 'cancellation_reason']);
         });
     }
-};
+}; 
