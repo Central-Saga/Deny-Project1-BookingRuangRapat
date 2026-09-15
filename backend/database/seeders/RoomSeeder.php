@@ -42,4 +42,4 @@ class RoomSeeder extends Seeder
             ]
         );
     }
-}
+} 
