@@ -28,4 +28,4 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:30,1');
         Route::delete('/bookings/{booking}', [BookingController::class, 'destroy']);
     });
-});
+}); 
