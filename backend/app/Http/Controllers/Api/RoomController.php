@@ -36,5 +36,5 @@ class RoomController extends Controller
         $room->delete();
 
         return response()->noContent();
-    }
+    } 
 }
