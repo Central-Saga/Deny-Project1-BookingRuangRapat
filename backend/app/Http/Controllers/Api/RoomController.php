@@ -11,7 +11,13 @@ class RoomController extends Controller
 {
     public function index()
     {
-        return RoomResource::collection(Room::where('is_active', true)->whereNull('deleted_at')->get());
+        $query = Room::query();
+
+        if (request()->user()?->role !== 'admin') {
+            $query->where('is_active', true);
+        }
+
+        return RoomResource::collection($query->latest()->get());
     }
 
     public function store(StoreRoomRequest $request)

@@ -8,6 +8,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -57,5 +58,12 @@ return Application::configure(basePath: dirname(__DIR__))
             if (!$request->is('api/*')) return null;
 
             return response()->json(['status' => false, 'message' => 'Autentikasi diperlukan.', 'errors' => []], 401);
+        });
+
+        $exceptions->render(function (Throwable $exception, Request $request) {
+            if (!$request->is('api/*')) return null;
+
+            $message = config('app.debug') ? $exception->getMessage() : 'Terjadi kesalahan pada server.';
+            return response()->json(['status' => false, 'message' => $message ?: 'Terjadi kesalahan pada server.', 'errors' => []], 500);
         });
     })->create();

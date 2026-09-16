@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 
@@ -13,6 +14,13 @@ class AdminUserController extends Controller
         abort_unless(request()->user()->role === 'admin', 403, 'Hanya admin yang dapat mengelola pengguna.');
 
         return response()->json(['data' => User::query()->latest()->get(['id', 'name', 'email', 'role', 'status', 'created_at'])]);
+    }
+
+    public function store(StoreUserRequest $request)
+    {
+        $user = User::create($request->validated());
+
+        return response()->json(['data' => $user->only(['id', 'name', 'email', 'role', 'status', 'created_at'])], 201);
     }
 
     public function update(UpdateUserRequest $request, User $user)

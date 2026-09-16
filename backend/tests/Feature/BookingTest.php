@@ -24,6 +24,20 @@ class BookingTest extends TestCase
                  ->assertJsonCount(3, 'data');
     }
 
+    public function test_soft_deleted_room_is_excluded_from_rooms_list()
+    {
+        $user = User::factory()->create();
+        Room::factory()->count(2)->create(['is_active' => true]);
+        $deletedRoom = Room::factory()->create(['is_active' => true]);
+        $deletedRoom->delete();
+
+        $response = $this->actingAs($user)->getJson('/api/v1/rooms');
+
+        $response->assertStatus(200)
+                 ->assertJsonCount(2, 'data')
+                 ->assertJsonMissing(['id' => $deletedRoom->id]);
+    }
+
     public function test_user_can_create_booking_successfully()
     {
         $user = User::factory()->create();
@@ -155,6 +169,23 @@ class BookingTest extends TestCase
         ]);
 
         $response->assertForbidden();
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_employee_cannot_cancel_admin_booking()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $employee = User::factory()->create(['role' => 'karyawan']);
+        $booking = Booking::factory()->create(['user_id' => $admin->id, 'status' => 'pending']);
+
+        $response = $this->actingAs($employee)->patchJson("/api/v1/bookings/{$booking->id}/cancel", [
+            'cancellation_reason' => 'Karyawan mencoba membatalkan rapat pimpinan.',
+        ]);
+
+        $response->assertStatus(403);
         $this->assertDatabaseHas('bookings', [
             'id' => $booking->id,
             'status' => 'pending',

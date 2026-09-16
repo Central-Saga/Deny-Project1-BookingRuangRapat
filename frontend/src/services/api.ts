@@ -117,6 +117,23 @@ export async function getUsers(): Promise<User[]> {
     return data.data ?? data;
 }
 
+export async function createUser(payload: {
+    name: string;
+    email: string;
+    password: string;
+    role: User['role'];
+    status: User['status'];
+}): Promise<User> {
+    const res = await fetch(`${API_URL}/v1/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal membuat akun pengguna'));
+    const data = await res.json();
+    return data.data ?? data;
+}
+
 export async function updateUser(id: number, payload: { role: User['role']; status: User['status'] }): Promise<User> {
     const res = await fetch(`${API_URL}/v1/users/${id}`, {
         method: 'PUT',

@@ -57,6 +57,8 @@ export default function Dashboard() {
     const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
     const [cancellationReason, setCancellationReason] = useState('');
     const [cancelling, setCancelling] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
     const [conflictError, setConflictError] = useState<string | null>(null);
     const [calendarNotice, setCalendarNotice] = useState<string | null>(null);
@@ -202,7 +204,8 @@ export default function Dashboard() {
     }
 
     async function confirmLogout() {
-        try { await logout(); } finally { setLogoutConfirm(false); clearToken(); setUser(null); setRooms([]); setBookings([]); setAvailabilityBookings([]); }
+        if (loggingOut) return;
+        try { setLoggingOut(true); await logout(); } finally { setLoggingOut(false); setLogoutConfirm(false); clearToken(); setUser(null); setRooms([]); setBookings([]); setAvailabilityBookings([]); }
     }
 
     async function handleSubmit(event: FormEvent) {
@@ -313,14 +316,17 @@ export default function Dashboard() {
     }
 
     async function confirmDelete() {
-        if (!deleteTarget) return;
+        if (!deleteTarget || deleting) return;
         try {
+            setDeleting(true);
             setActionError(null);
             await deleteBooking(deleteTarget.id);
             setDeleteTarget(null);
             await loadData();
         } catch (deleteError: unknown) {
             setActionError(errorMessage(deleteError, 'Gagal menghapus pemesanan'));
+        } finally {
+            setDeleting(false);
         }
     }
 
@@ -406,8 +412,8 @@ export default function Dashboard() {
                         <h2 id="logout-title" className="text-lg font-bold text-white">Keluar dari akun?</h2>
                         <p className="mt-2 text-sm leading-6 text-emerald-100/70">Anda akan keluar dari dashboard dan perlu masuk kembali untuk mengatur booking.</p>
                         <div className="mt-6 flex justify-end gap-3">
-                            <button type="button" onClick={() => setLogoutConfirm(false)} className="rounded-xl border border-emerald-800 px-4 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/50">Tetap masuk</button>
-                            <button type="button" onClick={confirmLogout} className="rounded-xl bg-[#f57c00] px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-[#d96800]">Ya, keluar</button>
+                            <button type="button" disabled={loggingOut} onClick={() => setLogoutConfirm(false)} className="rounded-xl border border-emerald-800 px-4 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/50 disabled:cursor-not-allowed disabled:opacity-50">Tetap masuk</button>
+                            <button type="button" disabled={loggingOut} onClick={confirmLogout} className="rounded-xl bg-[#f57c00] px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-50">{loggingOut ? 'Memproses...' : 'Ya, keluar'}</button>
                         </div>
                     </div>
                 </div>
@@ -438,8 +444,8 @@ export default function Dashboard() {
                         <p className="mt-2 text-sm leading-6 text-emerald-100/70">Booking <span className="font-semibold text-white">{deleteTarget.title}</span> akan dihapus dari jadwal Anda.</p>
                         {actionError && <p role="alert" className="mt-4 rounded-lg bg-rose-500/20 px-3 py-2 text-xs font-medium text-rose-300">{actionError}</p>}
                         <div className="mt-6 flex justify-end gap-3">
-                            <button type="button" onClick={() => { setDeleteTarget(null); setActionError(null); }} className="rounded-xl border border-emerald-800 px-4 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/50">Batal</button>
-                            <button type="button" onClick={confirmDelete} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700">Hapus booking</button>
+                            <button type="button" disabled={deleting} onClick={() => { setDeleteTarget(null); setActionError(null); }} className="rounded-xl border border-emerald-800 px-4 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/50 disabled:cursor-not-allowed disabled:opacity-50">Batal</button>
+                            <button type="button" disabled={deleting} onClick={confirmDelete} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50">{deleting ? 'Menghapus...' : 'Hapus booking'}</button>
                         </div>
                     </div>
                 </div>

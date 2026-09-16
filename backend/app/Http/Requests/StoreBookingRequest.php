@@ -42,10 +42,6 @@ class StoreBookingRequest extends FormRequest
 
             (new WithinWorkingHoursRule())->validate('start_time', $start, fn (string $message) => $validator->errors()->add('start_time', $message));
             (new WithinWorkingHoursRule())->validate('end_time', $end, fn (string $message) => $validator->errors()->add('end_time', $message));
-
-            if ($start->format('H:i') < '08:00' || $end->format('H:i') > '17:00') {
-                $validator->errors()->add('start_time', 'Booking hanya dapat dilakukan antara pukul 08:00 dan 17:00.');
-            }
         });
     }
 }
