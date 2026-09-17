@@ -82,7 +82,7 @@ export default function AdminDashboardPage({ user }: { user: User }) {
     const nav: { id: Section; label: string; icon: keyof typeof iconPaths }[] = [{ id: 'overview', label: 'Ringkasan', icon: 'grid' }, { id: 'approvals', label: 'Persetujuan booking', icon: 'check' }, { id: 'rooms', label: 'Kelola ruangan', icon: 'door' }, { id: 'users', label: 'Manajemen pengguna', icon: 'grid' }, { id: 'history', label: 'Riwayat booking', icon: 'refresh' }];
 
     return <div className="admin-shell min-h-screen bg-[#072418] text-white selection:bg-[#f57c00] selection:text-slate-950">
-        <header className="sticky top-0 z-25 border-b border-emerald-800/60 bg-[#0a2e22]/90 shadow-xl shadow-black/30 backdrop-blur-md">
+        <header className="sticky top-0 z-30 border-b border-emerald-800/60 bg-[#0a2e22]/90 shadow-xl shadow-black/30 backdrop-blur-md">
             <div className="mx-auto flex h-[76px] max-w-[1440px] items-center justify-between px-5 sm:px-8">
                 <div className="flex items-center gap-3.5">
                     <button type="button" onClick={() => setSidebarOpen((open) => !open)} aria-label="Toggle navigasi" className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl bg-[#f57c00] text-slate-950 shadow-md shadow-orange-950/20 transition-all duration-200 hover:bg-[#d96800] hover:scale-105 lg:-ml-4">
@@ -107,7 +107,7 @@ export default function AdminDashboardPage({ user }: { user: User }) {
             </div>
         </header>
 
-        <aside className={`fixed inset-x-0 top-[76px] z-20 border-b border-emerald-800/60 bg-[#0a2e22]/95 backdrop-blur-md transition-all duration-300 lg:bottom-0 lg:right-auto lg:border-b-0 lg:border-r ${sidebarOpen ? 'lg:w-68' : 'lg:w-24'}`}>
+        <aside className={`fixed inset-x-0 top-[76px] z-20 border-b border-emerald-800/60 bg-[#0a2e22]/95 backdrop-blur-md transition-all duration-300 lg:bottom-0 lg:right-auto lg:border-b-0 lg:border-r ${sidebarOpen ? 'lg:w-[17rem]' : 'lg:w-24'}`}>
             <nav className="flex max-w-[1440px] flex-col gap-2 px-5 py-4 sm:px-8 lg:block lg:px-4 lg:py-8">
                 {nav.map((item) => (
                     <button key={item.id} type="button" onClick={() => setSection(item.id)} title={item.label} className={`group flex w-full items-center gap-3.5 rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition-all duration-200 lg:mb-2.5 ${sidebarOpen ? '' : 'lg:justify-center lg:px-2'} ${section === item.id ? 'bg-[#f57c00] text-slate-950 shadow-lg shadow-orange-950/30 scale-[1.02]' : 'text-emerald-100/70 hover:bg-emerald-900/50 hover:text-white'}`}>
@@ -158,7 +158,7 @@ export default function AdminDashboardPage({ user }: { user: User }) {
             </Modal>
         )}
 
-        <main className={`mx-auto max-w-[1440px] px-5 pb-14 pt-28 sm:px-8 lg:pt-12 lg:pr-12 transition-all duration-300 ${sidebarOpen ? 'lg:pl-76' : 'lg:pl-32'}`}>
+        <main className={`mx-auto max-w-[1440px] px-5 pb-14 pt-28 sm:px-8 lg:pt-12 lg:pr-12 transition-all duration-300 ${sidebarOpen ? 'lg:pl-[19rem]' : 'lg:pl-32'}`}>
             {error && <p className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-300 shadow-lg">{error}</p>}
             {loading && <p className="mb-6 rounded-2xl border border-emerald-800 bg-[#0d2822] px-5 py-4 text-sm text-emerald-100/70 shadow-lg">Memuat data sistem...</p>}
 
@@ -168,7 +168,7 @@ export default function AdminDashboardPage({ user }: { user: User }) {
                         <div>
                             <span className="mb-3 inline-block text-[11px] font-bold uppercase tracking-wider text-[#f59e0b]">DASHBOARD ADMIN</span>
                             <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-6xl">Kelola Booking, <span className="bg-gradient-to-r from-[#f57c00] to-[#f59e0b] bg-clip-text text-transparent">Kolaborasi Hebat</span></h1>
-                            <p className="mt-6 max-w-xl text-sm leading-relaxed text-emerald-100/70 sm:text-base">Pantau permintaan ruang rapat secara *real-time*, kelola inventaris ruangan, dan bantu setiap tim bekerja dengan teratur dan efisien.</p>
+                            <p className="mt-6 max-w-xl text-sm leading-relaxed text-emerald-100/70 sm:text-base">Pantau permintaan ruang rapat secara real-time, kelola inventaris ruangan, dan bantu setiap tim bekerja dengan teratur dan efisien.</p>
                             <div className="mt-8 flex flex-wrap items-center gap-4">
                                 <button type="button" onClick={() => setSection('approvals')} className="rounded-xl bg-[#f57c00] px-7 py-3.5 text-sm font-bold text-slate-950 shadow-xl shadow-orange-950/30 transition-all duration-200 hover:bg-[#d96800] hover:scale-105">Tinjau booking</button>
                                 <span className="flex items-center gap-2.5 rounded-xl border border-emerald-800/80 bg-emerald-950/60 px-4 py-3 text-xs font-semibold text-emerald-300/80"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" /> Sistem aktif & siap digunakan</span>
