@@ -159,7 +159,7 @@ export default function AdminDashboardPage({ user }: { user: User }) {
         )}
 
         <main className={`mx-auto max-w-[1440px] px-5 pb-14 pt-28 sm:px-8 lg:pt-12 lg:pr-12 transition-all duration-300 ${sidebarOpen ? 'lg:pl-[19rem]' : 'lg:pl-32'}`}>
-            {error && <p className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-300 shadow-lg">{error}</p>}
+            {error && <div role="alert" className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-300 shadow-lg"><p>{error}</p><button type="button" onClick={() => void loadData()} className="mt-3 rounded-lg bg-[#f57c00] px-4 py-2 text-xs font-bold text-slate-950">Coba lagi</button></div>}
             {loading && <p className="mb-6 rounded-2xl border border-emerald-800 bg-[#0d2822] px-5 py-4 text-sm text-emerald-100/70 shadow-lg">Memuat data sistem...</p>}
 
             {section === 'overview' && (
@@ -290,6 +290,7 @@ function RoomSection({ rooms, form, saving, editing, togglingRoomId, onChange, o
                 <button type="submit" disabled={saving} className="rounded-2xl bg-[#f57c00] px-6 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-orange-950/20 transition hover:bg-[#d96800] disabled:opacity-60 sm:col-span-2">{saving ? 'Menyimpan...' : editing ? 'Simpan perubahan' : 'Tambah ruangan baru'}</button>
             </form>
             <div className="space-y-4">
+                {rooms.length === 0 && <p className="rounded-xl border border-dashed border-emerald-700 px-4 py-6 text-center text-sm text-emerald-100/70">Belum ada ruangan terdaftar.</p>}
                 {rooms.map((room) => (
                     <div key={room.id} className="flex flex-col justify-between gap-4 rounded-3xl border border-emerald-800/80 bg-[#0d2822] p-5 shadow-xl transition hover:border-emerald-600/60 sm:flex-row sm:items-center">
                         <div className="space-y-1">
@@ -354,6 +355,7 @@ function UserSection({ users, search, role, status, onSearch, onRole, onStatus, 
                 </select>
             </div>
             <div className="space-y-4">
+                {users.length === 0 && <p className="rounded-xl border border-dashed border-emerald-700 px-4 py-6 text-center text-sm text-emerald-100/70">Tidak ada pengguna yang cocok.</p>}
                 {users.map((target) => (
                     <div key={target.id} className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-emerald-800/80 bg-[#0d2822] p-5 shadow-xl transition hover:border-emerald-600/60">
                         <div>
