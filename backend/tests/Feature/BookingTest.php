@@ -43,12 +43,15 @@ class BookingTest extends TestCase
         $user = User::factory()->create();
         $room = Room::factory()->create(['is_active' => true]);
 
+        $startTime = now()->nextWeekday()->setTime(10, 0);
+        $endTime = $startTime->copy()->addHours(2);
+
         $payload = [
             'room_id'    => $room->id,
             'title'      => 'Rapat Koordinasi Tim',
             'participant_count' => 2,
-            'start_time' => now()->addHour()->toDateTimeString(),
-            'end_time'   => now()->addHours(2)->toDateTimeString(),
+            'start_time' => $startTime->toDateTimeString(),
+            'end_time'   => $endTime->toDateTimeString(),
             'notes'      => 'Catatan penting rapat.',
         ];
 

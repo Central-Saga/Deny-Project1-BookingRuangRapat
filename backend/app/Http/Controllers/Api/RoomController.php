@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRoomRequest;
 use App\Http\Resources\RoomResource;
 use App\Models\Room;
+use Illuminate\Support\Facades\DB;
 
 class RoomController extends Controller
 {
@@ -49,8 +50,10 @@ class RoomController extends Controller
     {
         abort_unless(request()->user()->role === 'admin', 403, 'Hanya admin yang dapat menonaktifkan ruangan.');
 
-        $room->update(['is_active' => false]);
-        $room->delete();
+        DB::transaction(function () use ($room): void {
+            $room->update(['is_active' => false]);
+            $room->delete();
+        });
 
         return response()->noContent();
     } 
