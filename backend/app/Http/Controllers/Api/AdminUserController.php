@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class AdminUserController extends Controller
 {
@@ -49,9 +50,15 @@ class AdminUserController extends Controller
     {
         abort_unless($user->id !== $request->user()->id, 422, 'Akun admin yang sedang digunakan tidak dapat diubah.');
 
-        $user->update($request->validated());
+        $validated = $request->validated();
 
-        if ($user->status === 'inactive') $user->tokens()->delete();
+        DB::transaction(function () use ($user, $validated): void {
+            $user->update($validated);
+
+            if ($user->status === 'inactive') {
+                $user->tokens()->delete();
+            }
+        });
 
         return response()->json(['data' => $user->fresh()->only(['id', 'name', 'email', 'role', 'status', 'created_at'])]);
     }
