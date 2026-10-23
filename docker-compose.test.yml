@@ -1,0 +1,34 @@
+services:
+  db_test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: meetspace_test
+      POSTGRES_USER: meetspace_test_user
+      POSTGRES_PASSWORD: test_only_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meetspace_test_user -d meetspace_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend_test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      DB_CONNECTION: pgsql
+      DB_HOST: db_test
+      DB_PORT: "5432"
+      DB_DATABASE: meetspace_test
+      DB_USERNAME: meetspace_test_user
+      DB_PASSWORD: test_only_password
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    depends_on:
+      db_test:
+        condition: service_healthy
+    command: ["sh", "-c", "touch /var/www/.env && php artisan test --display-warnings"]

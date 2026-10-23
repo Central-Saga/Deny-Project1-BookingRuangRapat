@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CancelBookingRequest;
 use App\Http\Requests\RejectBookingRequest;
 use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\UpdateBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
 use App\Models\Room;
@@ -28,7 +29,7 @@ class BookingController extends Controller
         }
 
         $bookings = $query->get();
-        return BookingResource::collection($bookings);
+        return BookingResource::collection($bookings)->additional(['status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
     }
 
     public function store(StoreBookingRequest $request)
@@ -58,7 +59,7 @@ class BookingController extends Controller
             ]);
         });
 
-        return new BookingResource($booking->load(['room', 'user']));
+        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function availability()
@@ -68,22 +69,22 @@ class BookingController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        return BookingResource::collection($bookings);
+        return BookingResource::collection($bookings)->additional(['status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
     }
 
     public function approve(Booking $booking)
     {
-        abort_unless(request()->user()->role === 'admin', 403, 'Hanya admin yang dapat menyetujui booking.');
+        Gate::authorize('approve', $booking);
         abort_unless($booking->status === 'pending', 422, 'Booking ini sudah diproses.');
 
         $booking->update(['status' => 'approved']);
 
-        return new BookingResource($booking->load(['room', 'user']));
+        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function reject(RejectBookingRequest $request, Booking $booking)
     {
-        abort_unless(request()->user()->role === 'admin', 403, 'Hanya admin yang dapat menolak booking.');
+        Gate::authorize('reject', $booking);
         abort_unless($booking->status === 'pending', 422, 'Booking ini sudah diproses.');
 
         $booking->update([
@@ -91,12 +92,12 @@ class BookingController extends Controller
             'approval_notes' => strip_tags($request->validated()['approval_notes']),
         ]);
 
-        return new BookingResource($booking->load(['room', 'user']));
+        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
-    public function update(StoreBookingRequest $request, Booking $booking)
+    public function update(UpdateBookingRequest $request, Booking $booking)
     {
-        abort_unless((int) $booking->user_id === (int) $request->user()->id, 403, 'Anda hanya dapat mengedit booking milik sendiri.');
+        Gate::authorize('update', $booking);
         abort_unless($booking->status !== 'rejected', 422, 'Booking yang sudah dibatalkan tidak dapat diedit.');
 
         $validated = $request->validated();
@@ -122,7 +123,7 @@ class BookingController extends Controller
             ]);
         });
 
-        return new BookingResource($booking->load(['room', 'user']));
+        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function cancel(CancelBookingRequest $request, Booking $booking)
@@ -133,12 +134,12 @@ class BookingController extends Controller
             'status' => 'rejected',
             'cancellation_reason' => strip_tags($request->validated()['cancellation_reason']),
         ]);
-        return new BookingResource($booking->load(['room', 'user']));
+        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function destroy(Booking $booking)
     {
-        abort_unless((int) $booking->user_id === (int) request()->user()->id, 403, 'Anda hanya dapat menghapus booking milik sendiri.');
+        Gate::authorize('delete', $booking);
         abort_unless($booking->status === 'rejected', 422, 'Booking harus dibatalkan terlebih dahulu sebelum dihapus.');
 
         $booking->delete();
