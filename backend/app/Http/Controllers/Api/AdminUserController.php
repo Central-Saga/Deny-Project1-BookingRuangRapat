@@ -13,7 +13,29 @@ class AdminUserController extends Controller
     {
         abort_unless(request()->user()->role === 'admin', 403, 'Hanya admin yang dapat mengelola pengguna.');
 
-        return response()->json(['data' => User::query()->latest()->get(['id', 'name', 'email', 'role', 'status', 'created_at'])]);
+        $pagination = request()->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $users = User::query()->latest()->orderByDesc('id')->paginate(
+            (int) ($pagination['per_page'] ?? 25),
+            ['id', 'name', 'email', 'role', 'status', 'created_at']
+        );
+
+        return response()->json([
+            'success' => true,
+            'status' => true,
+            'message' => 'Data pengguna berhasil dimuat.',
+            'data' => $users->items(),
+            'errors' => [],
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
+        ]);
     }
 
     public function store(StoreUserRequest $request)
