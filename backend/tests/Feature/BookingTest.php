@@ -147,7 +147,10 @@ class BookingTest extends TestCase
 
         $response->assertStatus(422)->assertJsonPath('status', false)->assertJsonPath('errors.0.field', 'start_time');
 
-        $beforeWorkday = Carbon::now()->next(Carbon::MONDAY)->setTime(7, 0);
+        $beforeWorkday = Carbon::now('Asia/Makassar')
+    ->next(Carbon::MONDAY)
+    ->setTime(7, 0)
+    ->setTimezone(config('app.timezone'));
         $response = $this->actingAs($user)->postJson('/api/v1/bookings', [
             'room_id' => $room->id,
             'title' => 'Booking sebelum jam kerja',

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\Booking;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinRoomCapacityRule;
 use App\Rules\WithinWorkingHoursRule;
@@ -11,7 +12,7 @@ class StoreBookingRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Booking::class) ?? false;
     }
 
     public function rules(): array
