@@ -1,5 +1,7 @@
 services:
   backend:
+    env_file:
+      - ./backend/.env
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -11,9 +13,9 @@ services:
       - DB_CONNECTION=pgsql
       - DB_HOST=db
       - DB_PORT=5432
-      - DB_DATABASE=meetspace_db
-      - DB_USERNAME=meetspace_user
-      - DB_PASSWORD=meetspace_password
+      - DB_DATABASE=${DB_DATABASE:-meetspace_db}
+      - DB_USERNAME=${DB_USERNAME:-meetspace_user}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD_required}
     depends_on:
       db:
         condition: service_healthy
@@ -23,13 +25,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
     container_name: meetspace_frontend
     restart: always
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
     depends_on:
       - backend
 
@@ -40,9 +42,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: meetspace_user
-      POSTGRES_PASSWORD: meetspace_password
-      POSTGRES_DB: meetspace_db
+      POSTGRES_USER: ${DB_USERNAME:-meetspace_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD_required}
+      POSTGRES_DB: ${DB_DATABASE:-meetspace_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
