@@ -9,7 +9,7 @@ function getToken(): string | null {
 
 function authHeaders(): HeadersInit {
     const token = getToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    return token ? { Accept: 'application/json', Authorization: `Bearer ${token}` } : { Accept: 'application/json' };
 }
 
 async function getErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -17,11 +17,33 @@ async function getErrorMessage(response: Response, fallback: string): Promise<st
     return data.message || fallback;
 }
 
+// Satu pintu untuk semua request API yang membutuhkan autentikasi.
+async function authenticatedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    let response: Response;
+    try {
+        response = await fetch(input, init);
+    } catch {
+        throw new Error('Tidak dapat terhubung ke server API. Periksa koneksi dan coba lagi.');
+    }
+
+    if (response.status === 401) {
+        clearToken();
+        if (typeof window !== 'undefined') {
+            window.location.replace('/');
+        }
+        throw new Error('Sesi login berakhir. Silakan masuk kembali.');
+    }
+
+    return response;
+}
+
 export async function login(email: string, password: string): Promise<{ token: string; user: User }> {
     const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ email, password })
+    }).catch(() => {
+        throw new Error('Tidak dapat terhubung ke server API. Periksa koneksi dan coba lagi.');
     });
 
     if (!response.ok) throw new Error(await getErrorMessage(response, 'Email atau password salah'));
@@ -29,13 +51,13 @@ export async function login(email: string, password: string): Promise<{ token: s
 }
 
 export async function getCurrentUser(): Promise<User> {
-    const response = await fetch(`${API_URL}/me`, { headers: authHeaders() });
-    if (!response.ok) throw new Error('Sesi login sudah berakhir');
+    const response = await authenticatedFetch(`${API_URL}/me`, { headers: authHeaders() });
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Gagal memeriksa sesi login.'));
     return response.json();
 }
 
 export async function logout(): Promise<void> {
-    const response = await fetch(`${API_URL}/logout`, {
+    const response = await authenticatedFetch(`${API_URL}/logout`, {
         method: 'POST',
         headers: authHeaders()
     });
@@ -66,7 +88,7 @@ async function getAllPages<T>(path: string, fallback: string): Promise<T[]> {
 
     do {
         const separator = path.includes('?') ? '&' : '?';
-        const response = await fetch(`${API_URL}${path}${separator}page=${page}&per_page=100`, {
+        const response = await authenticatedFetch(`${API_URL}${path}${separator}page=${page}&per_page=100`, {
             headers: authHeaders(),
         });
         if (!response.ok) throw new Error(await getErrorMessage(response, fallback));
@@ -100,7 +122,7 @@ export async function createRoom(payload: {
     facilities?: string[];
     is_active: boolean;
 }): Promise<Room> {
-    const res = await fetch(`${API_URL}/v1/rooms`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload)
@@ -118,7 +140,7 @@ export async function updateRoom(id: number, payload: {
     description?: string;
     is_active: boolean;
 }): Promise<Room> {
-    const res = await fetch(`${API_URL}/v1/rooms/${id}`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/rooms/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload)
@@ -129,7 +151,7 @@ export async function updateRoom(id: number, payload: {
 }
 
 export async function deleteRoom(id: number): Promise<void> {
-    const res = await fetch(`${API_URL}/v1/rooms/${id}`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/rooms/${id}`, {
         method: 'DELETE',
         headers: authHeaders()
     });
@@ -151,7 +173,7 @@ export async function createUser(payload: {
     role: User['role'];
     status: User['status'];
 }): Promise<User> {
-    const res = await fetch(`${API_URL}/v1/users`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload)
@@ -162,7 +184,7 @@ export async function createUser(payload: {
 }
 
 export async function updateUser(id: number, payload: { role: User['role']; status: User['status'] }): Promise<User> {
-    const res = await fetch(`${API_URL}/v1/users/${id}`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload)
@@ -173,7 +195,7 @@ export async function updateUser(id: number, payload: { role: User['role']; stat
 }
 
 async function updateBookingStatus(id: number, action: 'approve' | 'reject'): Promise<Booking> {
-    const res = await fetch(`${API_URL}/v1/bookings/${id}/${action}`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/bookings/${id}/${action}`, {
         method: 'PATCH',
         headers: authHeaders()
     });
@@ -187,7 +209,7 @@ export function approveBooking(id: number): Promise<Booking> {
 }
 
 export async function rejectBooking(id: number, approval_notes: string): Promise<Booking> {
-    const res = await fetch(`${API_URL}/v1/bookings/${id}/reject`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/bookings/${id}/reject`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ approval_notes })
@@ -205,7 +227,7 @@ export async function createBooking(payload: {
     end_time: string;
     notes?: string;
 }): Promise<Booking> {
-    const res = await fetch(`${API_URL}/v1/bookings`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload)
@@ -213,11 +235,12 @@ export async function createBooking(payload: {
     if (!res.ok) {
         throw new Error(await getErrorMessage(res, 'Gagal membuat pemesanan'));
     }
-    return res.json();
+    const data = await res.json();
+    return data.data ?? data;
 }
 
 export async function cancelBooking(id: number, cancellation_reason: string): Promise<void> {
-    const res = await fetch(`${API_URL}/v1/bookings/${id}/cancel`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/bookings/${id}/cancel`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ cancellation_reason })
@@ -226,7 +249,7 @@ export async function cancelBooking(id: number, cancellation_reason: string): Pr
 }
 
 export async function deleteBooking(id: number): Promise<void> {
-    const res = await fetch(`${API_URL}/v1/bookings/${id}`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/bookings/${id}`, {
         method: 'DELETE',
         headers: authHeaders()
     });
@@ -245,12 +268,13 @@ export async function updateBooking(id: number, payload: {
     end_time: string;
     notes?: string;
 }): Promise<Booking> {
-    const res = await fetch(`${API_URL}/v1/bookings/${id}`, {
+    const res = await authenticatedFetch(`${API_URL}/v1/bookings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal memperbarui pemesanan'));
-    return res.json();
+    const data = await res.json();
+    return data.data ?? data;
 }
 

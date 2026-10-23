@@ -41,6 +41,8 @@ function FieldError({ message }: { message?: string }) {
 export default function Dashboard() {
     const [user, setUser] = useState<User | null>(null);
     const [authLoading, setAuthLoading] = useState(true);
+    const [authError, setAuthError] = useState<string | null>(null);
+    const [authRetry, setAuthRetry] = useState(0);
     const [loginData, setLoginData] = useState({ email: '', password: '' });
     const [loginError, setLoginError] = useState<string | null>(null);
     const [loggingIn, setLoggingIn] = useState(false);
@@ -159,6 +161,8 @@ export default function Dashboard() {
 
     useEffect(() => {
         async function initializeAuth() {
+            setAuthLoading(true);
+            setAuthError(null);
             const token = window.localStorage.getItem('meetspace_auth_token');
             if (!token) {
                 setAuthLoading(false);
@@ -169,16 +173,20 @@ export default function Dashboard() {
                 setUser(currentUser);
                 if (currentUser.role === 'admin' && pathname !== '/admin') router.replace('/admin');
                 if (currentUser.role === 'karyawan' && pathname === '/admin') router.replace('/dashboard');
-                await loadData();
-            } catch {
-                clearToken();
-                setUser(null);
+                if (currentUser.role !== 'admin') await loadData();
+            } catch (authFailure: unknown) {
+                if (window.localStorage.getItem('meetspace_auth_token')) {
+                    // Server offline/5xx tidak sama dengan token kedaluwarsa.
+                    setAuthError(errorMessage(authFailure, 'Tidak dapat memeriksa sesi.'));
+                } else {
+                    setUser(null);
+                }
             } finally {
                 setAuthLoading(false);
             }
         }
         void initializeAuth();
-    }, []);
+    }, [authRetry]);
 
     async function handleLogin(event: FormEvent) {
         event.preventDefault();
@@ -331,6 +339,7 @@ export default function Dashboard() {
     }
 
     if (authLoading) return <div className="flex min-h-screen items-center justify-center bg-[#0b3524] text-sm font-medium text-emerald-100">Memeriksa sesi...</div>;
+    if (authError) return <main className="flex min-h-screen items-center justify-center bg-[#0b3524] p-6 text-white"><div role="alert" className="w-full max-w-md rounded-2xl border border-rose-500/30 p-8 text-center"><h1 className="text-lg font-bold">Server tidak dapat dihubungi</h1><p className="mt-3 text-sm text-emerald-100/70">{authError}</p><button type="button" onClick={() => setAuthRetry((n) => n + 1)} className="mt-6 rounded-xl bg-[#f57c00] px-5 py-3 font-semibold text-slate-950">Coba lagi</button></div></main>;
 
     if (!user) return (
         <main className="flex min-h-screen items-center justify-center bg-[#0b3524] px-4 py-8 sm:px-6">
@@ -548,6 +557,7 @@ export default function Dashboard() {
                         <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#f57c00]">Ruangan tersedia</p><h2 className="text-2xl font-bold text-white">Ruangan & ketersediaan</h2><p className="mt-1 text-sm text-emerald-100/70">Lihat kapasitas ruangan dan jam yang sudah terisi sebelum membuat booking.</p></div>
                         <div className="flex flex-wrap gap-2"><input type="date" value={availabilityDate} min={today} onChange={(event) => setAvailabilityDate(event.target.value)} className="rounded-lg border border-emerald-800 bg-emerald-950/60 px-3 py-2 text-xs text-white outline-none focus:border-[#f57c00] [color-scheme:dark]" /><select value={availabilityRoomId} onChange={(event) => setAvailabilityRoomId(event.target.value)} className="rounded-lg border border-emerald-800 bg-emerald-950/60 px-3 py-2 text-xs text-white outline-none focus:border-[#f57c00]"><option value="all" className="bg-[#0b3524]">Semua ruangan</option>{activeRooms.map((room) => <option key={room.id} value={room.id} className="bg-[#0b3524]">{room.name}</option>)}</select></div>
                     </div>
+                    {activeRooms.length === 0 && <p className="mb-5 rounded-xl border border-dashed border-emerald-700 p-6 text-center text-sm text-emerald-100/70">Belum ada ruangan aktif yang tersedia.</p>}
                     <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{activeRooms.map((room) => { const roomBookings = availabilityForDay.filter((booking) => booking.room_id === room.id); const isFull = isRoomFullyBooked(roomBookings); return <div key={room.id} className="rounded-xl border border-emerald-900 bg-emerald-900/20 p-4 transition hover:border-[#f57c00]/50 hover:bg-emerald-900/40"><div className="mb-4 flex items-center justify-between"><span className={`rounded-lg p-2 ${isFull ? 'bg-rose-500/10 text-rose-300' : 'bg-emerald-500/10 text-emerald-300'}`}><Icon name="door" className="h-5 w-5" /></span><span className={`text-[11px] font-semibold ${isFull ? 'text-rose-300' : 'text-emerald-400'}`}>{isFull ? 'Full' : 'Tersedia'}</span></div><h3 className="font-bold text-white">{room.name}</h3><div className="mt-2 flex items-center gap-2 text-xs text-emerald-100/70"><span>{room.location || 'Lokasi belum diatur'}</span><span className="text-emerald-700">|</span><span className="flex items-center gap-1"><Icon name="users" className="h-3.5 w-3.5" />{room.capacity}</span></div></div>; })}</div>
                     <div className="mb-4 border-t border-emerald-900 pt-6"><p className="text-sm font-semibold text-white">Timeline penggunaan ruangan</p><p className="mt-1 text-xs text-emerald-100/60">Blok oranye menandakan jam yang sudah terisi.</p></div>
                     <div className="mb-3 flex items-center gap-4 text-[11px] text-emerald-100/60"><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#f57c00]" /> Terisi</span><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm border border-dashed border-emerald-400" /> Kosong</span></div>
