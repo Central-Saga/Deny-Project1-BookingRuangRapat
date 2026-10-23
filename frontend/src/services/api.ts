@@ -52,11 +52,44 @@ export function clearToken(): void {
     window.localStorage.removeItem(TOKEN_KEY);
 }
 
+// Dashboard lama memakai array. Ambil semua halaman agar tidak ada data tersembunyi.
+// UI pagination dapat ditambahkan nantinya tanpa mengubah kontrak API.
+type PageResponse<T> = {
+    data: T[];
+    meta?: { current_page?: number; last_page?: number; per_page?: number; total?: number };
+};
+
+async function getAllPages<T>(path: string, fallback: string): Promise<T[]> {
+    const items: T[] = [];
+    let page = 1;
+    let lastPage = 1;
+
+    do {
+        const separator = path.includes('?') ? '&' : '?';
+        const response = await fetch(`${API_URL}${path}${separator}page=${page}&per_page=100`, {
+            headers: authHeaders(),
+        });
+        if (!response.ok) throw new Error(await getErrorMessage(response, fallback));
+
+        const payload = (await response.json()) as PageResponse<T>;
+        if (!payload || !Array.isArray(payload.data)) {
+            throw new Error('Struktur respons daftar API tidak valid.');
+        }
+        items.push(...payload.data);
+
+        const reportedPage = payload.meta?.current_page ?? page;
+        const totalPages = payload.meta?.last_page ?? 1;
+        if (reportedPage !== page || !Number.isSafeInteger(totalPages) || totalPages < 1 || totalPages > 100) {
+            throw new Error('Metadata pagination API tidak valid atau terlalu besar.');
+        }
+        lastPage = totalPages;
+        page++;
+    } while (page <= lastPage);
+
+    return items;
+}
 export async function getRooms(): Promise<Room[]> {
-    const res = await fetch(`${API_URL}/v1/rooms`, { headers: authHeaders() });
-    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal mengambil data ruangan'));
-    const data = await res.json();
-    return data.data ?? data;
+    return getAllPages<Room>('/v1/rooms', 'Gagal mengambil data ruangan');
 }
 
 export async function createRoom(payload: {
@@ -104,17 +137,11 @@ export async function deleteRoom(id: number): Promise<void> {
 }
 
 export async function getBookings(): Promise<Booking[]> {
-    const res = await fetch(`${API_URL}/v1/bookings`, { headers: authHeaders() });
-    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal mengambil data pemesanan'));
-    const data = await res.json();
-    return data.data ?? data;
+    return getAllPages<Booking>('/v1/bookings', 'Gagal mengambil data pemesanan');
 }
 
 export async function getUsers(): Promise<User[]> {
-    const res = await fetch(`${API_URL}/v1/users`, { headers: authHeaders() });
-    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal mengambil data pengguna'));
-    const data = await res.json();
-    return data.data ?? data;
+    return getAllPages<User>('/v1/users', 'Gagal mengambil data pengguna');
 }
 
 export async function createUser(payload: {
@@ -207,10 +234,7 @@ export async function deleteBooking(id: number): Promise<void> {
 }
 
 export async function getAvailability(): Promise<Booking[]> {
-    const res = await fetch(`${API_URL}/v1/bookings/availability`, { headers: authHeaders() });
-    if (!res.ok) throw new Error(await getErrorMessage(res, 'Gagal mengambil ketersediaan ruangan'));
-    const data = await res.json();
-    return data.data ?? data;
+    return getAllPages<Booking>('/v1/bookings/availability', 'Gagal mengambil ketersediaan ruangan');
 }
 
 export async function updateBooking(id: number, payload: {

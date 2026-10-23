@@ -20,49 +20,76 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (ValidationException $exception, Request $request) {
+        $fail = static function (
+            string $message,
+            int $httpStatus,
+            array $errors = [],
+            array $headers = []
+        ) {
+            return response()->json([
+                'success' => false,
+                'status' => false,
+                'message' => $message,
+                'data' => null,
+                'errors' => $errors,
+            ], $httpStatus, $headers);
+        };
+
+        $exceptions->render(function (ValidationException $exception, Request $request) use ($fail) {
             if (!$request->is('api/*')) return null;
 
-            return response()->json([
-                'status' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => collect($exception->errors())
-                    ->flatMap(fn (array $messages, string $field): array => array_map(
-                        fn (string $message): array => ['field' => $field, 'message' => $message],
-                        $messages
-                    ))
-                    ->values()
-                    ->all(),
-            ], 422);
+            $errors = collect($exception->errors())
+                ->flatMap(fn (array $messages, string $field): array => array_map(
+                    fn (string $message): array => [
+                        'field' => $field,
+                        'message' => $message,
+                    ],
+                    $messages
+                ))
+                ->values()
+                ->all();
+
+            return $fail('Validasi gagal.', 422, $errors);
         });
 
-        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
+        $exceptions->render(function (AuthorizationException $exception, Request $request) use ($fail) {
+            if (!$request->is('api/*')) return null;
+
+            return $fail($exception->getMessage() ?: 'Akses ditolak.', 403);
+        });
+
+        $exceptions->render(function (AuthenticationException $exception, Request $request) use ($fail) {
+            if (!$request->is('api/*')) return null;
+
+            return $fail('Autentikasi diperlukan.', 401);
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) use ($fail) {
             if (!$request->is('api/*')) return null;
 
             $status = $exception->getStatusCode();
-            return response()->json([
-                'status' => false,
-                'message' => $exception->getMessage() ?: 'Permintaan tidak dapat diproses.',
-                'errors' => [],
-            ], $status);
+
+            $message = match ($status) {
+                404 => 'Endpoint tidak ditemukan.',
+                405 => 'Metode HTTP tidak diizinkan.',
+                429 => 'Terlalu banyak permintaan. Silakan coba lagi.',
+                default => $exception->getMessage() ?: 'Permintaan tidak dapat diproses.',
+            };
+
+            if ($status >= 500 && !config('app.debug')) {
+                $message = 'Terjadi kesalahan pada server.';
+            }
+
+            return $fail($message, $status, [], $exception->getHeaders());
         });
 
-        $exceptions->render(function (AuthorizationException $exception, Request $request) {
+        $exceptions->render(function (Throwable $exception, Request $request) use ($fail) {
             if (!$request->is('api/*')) return null;
 
-            return response()->json(['status' => false, 'message' => $exception->getMessage() ?: 'Akses ditolak.', 'errors' => []], 403);
-        });
+            $message = config('app.debug')
+                ? $exception->getMessage()
+                : 'Terjadi kesalahan pada server.';
 
-        $exceptions->render(function (AuthenticationException $exception, Request $request) {
-            if (!$request->is('api/*')) return null;
-
-            return response()->json(['status' => false, 'message' => 'Autentikasi diperlukan.', 'errors' => []], 401);
-        });
-
-        $exceptions->render(function (Throwable $exception, Request $request) {
-            if (!$request->is('api/*')) return null;
-
-            $message = config('app.debug') ? $exception->getMessage() : 'Terjadi kesalahan pada server.';
-            return response()->json(['status' => false, 'message' => $message ?: 'Terjadi kesalahan pada server.', 'errors' => []], 500);
+            return $fail($message ?: 'Terjadi kesalahan pada server.', 500);
         });
     })->create();

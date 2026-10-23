@@ -17,7 +17,18 @@ class RoomController extends Controller
             $query->where('is_active', true);
         }
 
-        return RoomResource::collection($query->latest()->get());
+        $pagination = request()->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        return RoomResource::collection($query->latest()->orderByDesc('id')->paginate((int) ($pagination['per_page'] ?? 25)))
+            ->additional([
+                'success' => true,
+                'status' => true,
+                'message' => 'Data ruangan berhasil dimuat.',
+                'errors' => [],
+            ]);
     }
 
     public function store(StoreRoomRequest $request)

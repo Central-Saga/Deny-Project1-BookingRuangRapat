@@ -18,7 +18,7 @@ class BookingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Booking::with(['user', 'room'])->latest();
+        $query = Booking::with(['user', 'room'])->latest()->orderByDesc('id');
 
         if (request()->user()->role === 'karyawan') {
             $query->where('user_id', request()->user()->id);
@@ -28,8 +28,18 @@ class BookingController extends Controller
             $query->whereDate('start_time', $request->string('date')->toString());
         }
 
-        $bookings = $query->get();
-        return BookingResource::collection($bookings)->additional(['status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
+        $pagination = $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $bookings = $query->paginate((int) ($pagination['per_page'] ?? 25));
+        return BookingResource::collection($bookings)->additional([
+            'success' => true,
+            'status' => true,
+            'message' => 'Data booking berhasil dimuat.',
+            'errors' => [],
+        ]);
     }
 
     public function store(StoreBookingRequest $request)
@@ -62,14 +72,24 @@ class BookingController extends Controller
         return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
-    public function availability()
+    public function availability(Request $request)
     {
+        $pagination = $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
         $bookings = Booking::with('room')
             ->whereNotIn('status', ['rejected', 'cancelled'])
-            ->orderBy('start_time')
-            ->get();
+            ->orderBy('start_time')->orderBy('id')
+            ->paginate((int) ($pagination['per_page'] ?? 25));
 
-        return BookingResource::collection($bookings)->additional(['status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
+        return BookingResource::collection($bookings)->additional([
+            'success' => true,
+            'status' => true,
+            'message' => 'Data ketersediaan berhasil dimuat.',
+            'errors' => [],
+        ]);
     }
 
     public function approve(Booking $booking)
