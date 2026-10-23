@@ -44,3 +44,6 @@ next-env.d.ts
 # Laravel vendor dependencies
 /backend/vendor/
 /vendor/
+
+# Allow safe environment templates
+!.env.example
