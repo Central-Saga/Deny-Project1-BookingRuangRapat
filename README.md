@@ -1,5 +1,7 @@
 # Saga MeetSpace — Sistem Booking Ruang Rapat
 
+[![CI](https://github.com/Central-Saga/Deny-Project1-BookingRuangRapat/actions/workflows/ci.yml/badge.svg)](https://github.com/Central-Saga/Deny-Project1-BookingRuangRapat/actions/workflows/ci.yml)
+
 Saga MeetSpace adalah aplikasi web untuk pengelolaan pemesanan ruang rapat. Karyawan dapat melihat ketersediaan ruangan, membuat dan mengelola pengajuan pemesanan, serta melihat jadwal dan riwayat. Admin memiliki akses pengelolaan ruangan, akun pengguna, dan persetujuan atau penolakan pengajuan.
 
 > **Lingkungan:** Panduan ini ditujukan untuk pengembangan/demo lokal menggunakan Docker Compose. Akun demo dan nilai konfigurasi contoh **bukan** untuk produksi.
