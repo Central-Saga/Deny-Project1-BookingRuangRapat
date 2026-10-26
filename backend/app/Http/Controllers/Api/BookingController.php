@@ -118,7 +118,7 @@ class BookingController extends Controller
     public function update(UpdateBookingRequest $request, Booking $booking)
     {
         Gate::authorize('update', $booking);
-        abort_unless($booking->status !== 'rejected', 422, 'Booking yang sudah dibatalkan tidak dapat diedit.');
+        abort_if(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking yang sudah dibatalkan atau ditolak tidak dapat diedit.');
 
         $validated = $request->validated();
         DB::transaction(function () use ($booking, $validated): void {
@@ -150,8 +150,10 @@ class BookingController extends Controller
     {
         Gate::authorize('cancel', $booking);
 
+        abort_if(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking ini sudah dibatalkan atau ditolak.');
+
         $booking->update([
-            'status' => 'rejected',
+            'status' => 'cancelled',
             'cancellation_reason' => strip_tags($request->validated()['cancellation_reason']),
         ]);
         return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
@@ -160,7 +162,7 @@ class BookingController extends Controller
     public function destroy(Booking $booking)
     {
         Gate::authorize('delete', $booking);
-        abort_unless($booking->status === 'rejected', 422, 'Booking harus dibatalkan terlebih dahulu sebelum dihapus.');
+        abort_unless(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking harus dibatalkan atau ditolak terlebih dahulu sebelum dihapus.');
 
         $booking->delete();
 

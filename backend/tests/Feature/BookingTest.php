@@ -107,7 +107,33 @@ class BookingTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJsonFragment(['status' => 'rejected']);
+                 ->assertJsonFragment(['status' => 'cancelled']);
+
+        $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'cancelled']);
+    }
+
+    public function test_admin_reject_stores_rejected_status_distinct_from_cancelled()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $booking = Booking::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($admin)->patchJson("/api/v1/bookings/{$booking->id}/reject", [
+            'approval_notes' => 'Ruangan dipakai direksi.',
+        ])->assertOk()->assertJsonFragment(['status' => 'rejected']);
+
+        $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'rejected']);
+    }
+
+    public function test_cancelled_and_rejected_bookings_can_be_deleted_but_pending_cannot()
+    {
+        $user = User::factory()->create();
+        $cancelled = Booking::factory()->create(['user_id' => $user->id, 'status' => 'cancelled']);
+        $rejected = Booking::factory()->create(['user_id' => $user->id, 'status' => 'rejected']);
+        $pending = Booking::factory()->create(['user_id' => $user->id, 'status' => 'pending']);
+
+        $this->actingAs($user)->deleteJson("/api/v1/bookings/{$cancelled->id}")->assertNoContent();
+        $this->actingAs($user)->deleteJson("/api/v1/bookings/{$rejected->id}")->assertNoContent();
+        $this->actingAs($user)->deleteJson("/api/v1/bookings/{$pending->id}")->assertStatus(422);
     }
 
     public function test_employee_can_only_see_own_bookings()

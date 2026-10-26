@@ -26,7 +26,7 @@ export interface Booking {
     participant_count: number;
     start_time: string;
     end_time: string;
-    status: 'pending' | 'approved' | 'rejected';
+    status: 'pending' | 'approved' | 'rejected' | 'cancelled';
     notes?: string;
     cancellation_reason?: string;
     approval_notes?: string;

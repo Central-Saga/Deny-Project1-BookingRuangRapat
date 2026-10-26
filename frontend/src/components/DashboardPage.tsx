@@ -13,11 +13,10 @@ import AdminDashboardPage from './AdminDashboardPage';
 const OPERATING_START_MINUTES = 8 * 60;
 const OPERATING_END_MINUTES = 17 * 60;
 
-const statusLabels: Record<Booking['status'], string> = { pending: 'Menunggu persetujuan', approved: 'Disetujui', rejected: 'Dibatalkan' };
+const statusLabels: Record<Booking['status'], string> = { pending: 'Menunggu persetujuan', approved: 'Disetujui', rejected: 'Ditolak', cancelled: 'Dibatalkan' };
 
 function bookingStatusLabel(booking: Booking): string {
-    if (booking.status !== 'rejected') return statusLabels[booking.status];
-    return booking.approval_notes ? 'Ditolak' : 'Dibatalkan';
+    return statusLabels[booking.status];
 }
 
 function Icon({ name, className = 'h-5 w-5' }: { name: 'calendar' | 'clock' | 'door' | 'logout' | 'plus' | 'search' | 'users' | 'refresh'; className?: string }) {
@@ -80,12 +79,9 @@ export default function Dashboard() {
     const showHistory = currentPage === 'riwayat';
 
     const activeRooms = useMemo(() => rooms.filter((room) => room.is_active), [rooms]);
-    const activeBookings = useMemo(() => bookings.filter((booking) => booking.status !== 'rejected'), [bookings]);
+    const activeBookings = useMemo(() => bookings.filter((booking) => booking.status !== 'rejected' && booking.status !== 'cancelled'), [bookings]);
     const filteredBookings = useMemo(() => bookings.filter((booking) => {
-        const matchesStatus = statusFilter === 'all' ||
-            (statusFilter === 'rejected' && booking.status === 'rejected' && Boolean(booking.approval_notes)) ||
-            (statusFilter === 'cancelled' && booking.status === 'rejected' && !booking.approval_notes) ||
-            (statusFilter !== 'rejected' && statusFilter !== 'cancelled' && booking.status === statusFilter);
+        const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
         const searchable = `${booking.title} ${booking.room?.name || ''}`.toLowerCase();
         return matchesStatus && searchable.includes(search.toLowerCase());
     }), [bookings, search, statusFilter]);
@@ -96,7 +92,7 @@ export default function Dashboard() {
     }), [availabilityBookings, availabilityDate, availabilityRoomId]);
 
     function setDeleteTarget(target: Booking | null) {
-        if (target === null || target.status === 'rejected') {
+        if (target === null || target.status === 'rejected' || target.status === 'cancelled') {
             setDeleteTargetState(target);
         }
     }
@@ -250,7 +246,7 @@ export default function Dashboard() {
     }
 
     function startEditing(booking: Booking) {
-        if (booking.status === 'rejected') return;
+        if (booking.status === 'rejected' || booking.status === 'cancelled') return;
         const start = new Date(booking.start_time);
         const end = new Date(booking.end_time);
         const date = start.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -654,7 +650,7 @@ export default function Dashboard() {
                                             <div className="min-w-0">
                                                 <div className="mb-2 flex flex-wrap items-center gap-2">
                                                     <h3 className="truncate text-sm font-bold text-white">{booking.title}</h3>
-                                                    <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${booking.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' : booking.status === 'pending' ? 'bg-amber-500/20 text-amber-300' : booking.approval_notes ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-700/50 text-slate-400'}`}>{bookingStatusLabel(booking)}</span>
+                                                    <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${booking.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' : booking.status === 'pending' ? 'bg-amber-500/20 text-amber-300' : booking.status === 'rejected' ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-700/50 text-slate-400'}`}>{bookingStatusLabel(booking)}</span>
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-emerald-100/70">
                                                     <span className="font-medium text-white">{formatDate(booking.start_time)}</span>
@@ -666,8 +662,8 @@ export default function Dashboard() {
                                                 {booking.approval_notes && <p className="mt-2 border-l-2 border-rose-400/70 pl-2 text-xs leading-5 text-rose-200"><span className="font-semibold text-rose-300">Alasan admin menolak:</span> {booking.approval_notes}</p>}
                                             </div>
                                             <div className="flex shrink-0 items-center gap-2">
-                                                {booking.status !== 'rejected' && <button type="button" onClick={() => startEditing(booking)} className="rounded-lg border border-emerald-800 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-200 transition hover:border-[#f57c00]/50 hover:bg-[#f57c00]/10 hover:text-[#f57c00]">Edit</button>}
-                                                {booking.status !== 'rejected' && <button type="button" onClick={() => handleCancel(booking)} className="rounded-lg border border-emerald-800 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-200 transition hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-300">Batalkan</button>}
+                                                {booking.status !== 'rejected' && booking.status !== 'cancelled' && <button type="button" onClick={() => startEditing(booking)} className="rounded-lg border border-emerald-800 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-200 transition hover:border-[#f57c00]/50 hover:bg-[#f57c00]/10 hover:text-[#f57c00]">Edit</button>}
+                                                {booking.status !== 'rejected' && booking.status !== 'cancelled' && <button type="button" onClick={() => handleCancel(booking)} className="rounded-lg border border-emerald-800 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-200 transition hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-300">Batalkan</button>}
                                                 <button type="button" onClick={() => setDeleteTarget(booking)} aria-label={`Hapus booking ${booking.title}`} className="rounded-lg border border-emerald-800 p-1.5 text-emerald-300/60 transition hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-400" title="Hapus booking"><svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5" /></svg></button>
                                             </div>
                                         </div>
