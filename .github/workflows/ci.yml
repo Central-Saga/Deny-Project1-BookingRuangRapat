@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (migrate + php artisan test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      db_test:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: meetspace_test
+          POSTGRES_USER: meetspace_test_user
+          POSTGRES_PASSWORD: test_only_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U meetspace_test_user -d meetspace_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_DATABASE: meetspace_test
+      DB_USERNAME: meetspace_test_user
+      DB_PASSWORD: test_only_password
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('backend/composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      # phpunit.xml memaksa DB_HOST=db_test, jadi petakan ke service PostgreSQL.
+      - name: Map db_test hostname
+        run: echo "127.0.0.1 db_test" | sudo tee -a /etc/hosts
+
+      - name: Run migrations
+        run: php artisan migrate --force
+
+      - name: Run tests
+        run: php artisan test --display-warnings
+
+  frontend:
+    name: Frontend (npm ci + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
