@@ -22,6 +22,21 @@ Saga MeetSpace adalah aplikasi web untuk pengelolaan pemesanan ruang rapat. Kary
 
 Beberapa tindakan dibatasi oleh role, status booking, dan aturan validasi di backend. Jam operasional yang digunakan oleh antarmuka adalah **08.00–17.00**; ikuti validasi backend saat mengajukan booking.
 
+### Otorisasi (RBAC)
+
+Satu-satunya sumber otorisasi adalah kolom `users.role` (`admin` atau `karyawan`). Aplikasi tidak memakai paket `spatie/laravel-permission`.
+
+| Aksi | Admin | Karyawan |
+|------|:-----:|:--------:|
+| Melihat ruangan aktif dan ketersediaan | ✅ | ✅ |
+| Melihat ruangan nonaktif, membuat/mengubah/menonaktifkan ruangan | ✅ | ❌ |
+| Mengelola pengguna (`/api/v1/users`) | ✅ | ❌ |
+| Membuat booking | ✅ | ✅ |
+| Melihat booking | semua | milik sendiri |
+| Mengubah/menghapus booking | hanya milik sendiri | hanya milik sendiri |
+| Membatalkan booking | semua | milik sendiri |
+| Menyetujui/menolak booking | ✅ | ❌ |
+
 ## Teknologi
 
 | Komponen | Teknologi |
