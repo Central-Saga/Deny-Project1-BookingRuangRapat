@@ -96,7 +96,7 @@ Copy-Item backend/.env.example backend/.env
 Gunakan editor teks untuk menyesuaikan kedua file berikut:
 
 - **`.env` di root repository:** atur `DB_PASSWORD` menjadi password database **lokal** pilihan Anda; `DB_USERNAME`, `DB_DATABASE`, dan `NEXT_PUBLIC_API_URL` dapat dibiarkan sesuai contoh untuk demo lokal.
-- **`backend/.env`:** biarkan `DB_HOST=db`, `DB_PORT=5432`, `DB_CONNECTION=pgsql`, dan atur `APP_ENV=local`, `APP_DEBUG=true` hanya untuk pengembangan. Variabel database yang ditetapkan Compose akan diteruskan ke container backend. Nilai `APP_KEY` akan dibuat pada langkah berikutnya.
+- **`backend/.env`:** biarkan `DB_HOST=db`, `DB_PORT=5432`, `DB_CONNECTION=pgsql`, dan atur `APP_ENV=local`, `APP_DEBUG=true` hanya untuk pengembangan (di Compose, nilai `APP_DEBUG` diambil dari `.env` root, default `false`). Variabel database yang ditetapkan Compose akan diteruskan ke container backend. Nilai `APP_KEY` akan dibuat pada langkah berikutnya.
 
 **Penting:** Root `.env` dipakai Docker Compose untuk substitusi variabel database. `backend/.env` dipakai untuk konfigurasi Laravel melalui `env_file`. Jangan berasumsi root `APP_KEY` dipakai Laravel. Jangan commit file `.env` atau menggunakan akun/password demo di server publik.
 
@@ -228,6 +228,7 @@ docker compose config --quiet
 - `.env.example` berisi contoh/placeholder, bukan kunci atau password aktif.
 - `.dockerignore` backend mengecualikan `.env` agar rahasia lokal tidak disalin oleh `COPY . .` ke image.
 - Ganti kredensial dan nonaktifkan akun demo sebelum deployment publik.
+- **Produksi:** set `APP_ENV=production` dan `APP_DEBUG=false` (default aman pada `.env.example`). `APP_DEBUG=true` hanya untuk pengembangan lokal karena membocorkan stack trace dan detail environment. Compose meneruskan `APP_DEBUG` dari `.env` root dengan default `false`; untuk debug lokal set `APP_DEBUG=true` di `.env` root.
 - Konfigurasi Compose di repository ini ditujukan untuk **demo/pengembangan lokal**, belum otomatis merupakan konfigurasi produksi yang aman.
 
 ## Pengujian dan pengembangan
