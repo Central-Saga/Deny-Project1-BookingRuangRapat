@@ -10,6 +10,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - APP_DEBUG=${APP_DEBUG:-false}
       - DB_CONNECTION=pgsql
       - DB_HOST=db
       - DB_PORT=5432
