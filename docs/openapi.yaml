@@ -1,0 +1,695 @@
+openapi: 3.1.0
+info:
+  title: Saga MeetSpace API
+  version: 1.0.0
+  description: >-
+    Dokumentasi API Laravel yang mengikuti route, resource, request validation,
+    policy, dan exception renderer pada backend saat ini. Semua tanggal waktu
+    booking memakai ISO 8601. Role yang tersedia adalah admin dan karyawan.
+servers:
+  - url: http://localhost:8000/api
+    description: Docker Compose lokal
+tags:
+  - name: Authentication
+  - name: Rooms
+  - name: Users
+  - name: Bookings
+security:
+  - sanctumBearer: []
+paths:
+  /login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      summary: Login dan membuat token Sanctum
+      description: Limit route 5 percobaan per menit (throttle:5,1).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, example: admin@example.com }
+                password: { type: string, format: password, example: password }
+            examples:
+              valid:
+                value: { email: admin@example.com, password: password }
+      responses:
+        '200':
+          description: Login berhasil.
+          content:
+            application/json:
+              example:
+                message: Login berhasil
+                token: 1|exampleSanctumToken
+                user: { id: 1, name: Admin MeetSpace, email: admin@example.com, role: admin }
+        '401':
+          description: Kredensial salah atau akun tidak aktif.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example:
+                success: false
+                status: false
+                message: Email atau password salah.
+                data: null
+                errors: []
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /me:
+    get:
+      tags: [Authentication]
+      operationId: getCurrentUser
+      summary: Mendapatkan pengguna dari token aktif
+      description: Request tanpa body; kirim token Bearer Sanctum.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request GET --url http://localhost:8000/api/me --header "Authorization: Bearer <token>"
+      responses:
+        '200':
+          description: Pengguna terautentikasi.
+          content:
+            application/json:
+              example: { id: 1, name: Admin MeetSpace, email: admin@example.com, role: admin }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: Menghapus token akses saat ini
+      description: Request tanpa body; hanya token yang sedang digunakan yang dihapus.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request POST --url http://localhost:8000/api/logout --header "Authorization: Bearer <token>"
+      responses:
+        '200':
+          description: Logout berhasil.
+          content:
+            application/json:
+              example: { message: Logout berhasil }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /v1/rooms:
+    get:
+      tags: [Rooms]
+      operationId: listRooms
+      summary: Daftar ruangan
+      description: Admin melihat semua ruangan; karyawan hanya melihat ruangan aktif.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request GET --url "http://localhost:8000/api/v1/rooms?page=1&per_page=25" --header "Authorization: Bearer <token>"
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Halaman daftar ruangan.
+          content:
+            application/json:
+              example:
+                success: true
+                status: true
+                message: Data ruangan berhasil dimuat.
+                data:
+                  - { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor, whiteboard], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }
+                links: { first: 'http://localhost/api/v1/rooms?page=1', last: 'http://localhost/api/v1/rooms?page=1', prev: null, next: null }
+                meta: { current_page: 1, from: 1, last_page: 1, per_page: 25, to: 1, total: 1 }
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    post:
+      tags: [Rooms]
+      operationId: createRoom
+      summary: Membuat ruangan
+      description: Hanya admin; body mengikuti StoreRoomRequest.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoomInput' }
+            example: { name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor, whiteboard], description: Ruang rapat utama, is_active: true }
+      responses:
+        '201':
+          description: Ruangan dibuat.
+          content:
+            application/json:
+              example:
+                data: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor, whiteboard], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    put:
+      tags: [Rooms]
+      operationId: updateRoom
+      summary: Mengubah ruangan
+      description: Hanya admin; seluruh field wajib pada StoreRoomRequest tetap wajib saat update.
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoomInput' }
+            example: { name: Ruang Rapat Utama, capacity: 16, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true }
+      responses:
+        '200':
+          description: Ruangan diperbarui.
+          content:
+            application/json:
+              example:
+                data: { id: 1, name: Ruang Rapat Utama, capacity: 16, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Rooms]
+      operationId: deactivateRoom
+      summary: Menonaktifkan dan menghapus ruangan
+      description: Hanya admin; soft delete dan set is_active=false.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request DELETE --url http://localhost:8000/api/v1/rooms/1 --header "Authorization: Bearer <token>"
+      parameters:
+        - $ref: '#/components/parameters/RoomId'
+      responses:
+        '204': { description: Ruangan dinonaktifkan; response tanpa body. }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: Hanya admin yang dapat menonaktifkan ruangan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example: { success: false, status: false, message: Hanya admin yang dapat menonaktifkan ruangan., data: null, errors: [] }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/users:
+    get:
+      tags: [Users]
+      operationId: listUsers
+      summary: Daftar pengguna
+      description: Hanya admin.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request GET --url "http://localhost:8000/api/v1/users?page=1&per_page=25" --header "Authorization: Bearer <token>"
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Halaman pengguna.
+          content:
+            application/json:
+              example:
+                success: true
+                status: true
+                message: Data pengguna berhasil dimuat.
+                data: [{ id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan, status: active, created_at: '2026-10-28T08:00:00.000000Z' }]
+                errors: []
+                meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: Hanya admin yang dapat mengelola pengguna.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example: { success: false, status: false, message: Hanya admin yang dapat mengelola pengguna., data: null, errors: [] }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Membuat pengguna
+      description: Hanya admin; password minimal 8 karakter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserCreateInput' }
+            example: { name: Karyawan Satu, email: karyawan@example.com, password: securepass123, role: karyawan, status: active }
+      responses:
+        '201':
+          description: Pengguna dibuat.
+          content:
+            application/json:
+              example:
+                data: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan, status: active, created_at: '2026-10-28T08:00:00.000000Z' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/users/{user}:
+    put:
+      tags: [Users]
+      operationId: updateUser
+      summary: Mengubah role dan status pengguna
+      description: Hanya admin; akun admin yang sedang digunakan tidak dapat diubah.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserUpdateInput' }
+            example: { role: karyawan, status: active }
+      responses:
+        '200':
+          description: Pengguna diperbarui.
+          content:
+            application/json:
+              example:
+                data: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan, status: active, created_at: '2026-10-28T08:00:00.000000Z' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Validasi gagal atau admin mencoba mengubah akun sendiri.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example: { success: false, status: false, message: Akun admin yang sedang digunakan tidak dapat diubah., data: null, errors: [] }
+
+  /v1/bookings:
+    get:
+      tags: [Bookings]
+      operationId: listBookings
+      summary: Daftar booking
+      description: Admin melihat semua booking; karyawan hanya booking miliknya. Filter date memakai tanggal start_time.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request GET --url "http://localhost:8000/api/v1/bookings?date=2026-11-02&page=1&per_page=25" --header "Authorization: Bearer <token>"
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema: { type: string, format: date, example: '2026-11-02' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Halaman booking.
+          content:
+            application/json:
+              example:
+                success: true
+                status: true
+                message: Data booking berhasil dimuat.
+                data:
+                  - id: 10
+                    room_id: 1
+                    user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }
+                    room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }
+                    title: Review sprint
+                    participant_count: 5
+                    start_time: '2026-11-02T09:00:00.000000Z'
+                    end_time: '2026-11-02T10:00:00.000000Z'
+                    status: pending
+                    notes: Review target sprint
+                    cancellation_reason: null
+                    approval_notes: null
+                    created_at: '2026-10-28T08:00:00.000000Z'
+                links: { first: 'http://localhost/api/v1/bookings?page=1', last: 'http://localhost/api/v1/bookings?page=1', prev: null, next: null }
+                meta: { current_page: 1, from: 1, last_page: 1, per_page: 25, to: 1, total: 1 }
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    post:
+      tags: [Bookings]
+      operationId: createBooking
+      summary: Mengajukan booking
+      description: Limit route 30 permintaan per menit (throttle:30,1). Booking hanya pada hari kerja, satu hari yang sama, pukul 08.00-17.00; peserta tidak boleh melebihi kapasitas ruangan dan jadwal tidak boleh bentrok.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BookingInput' }
+            example: { room_id: 1, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00+07:00', end_time: '2026-11-02T10:00:00+07:00', notes: Review target sprint }
+      responses:
+        '201':
+          description: Booking dibuat dengan status pending.
+          content:
+            application/json:
+              example:
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: pending, notes: Review target sprint, cancellation_reason: null, approval_notes: null, created_at: '2026-10-28T08:00:00.000000Z' }
+                status: true
+                message: Operasi booking berhasil.
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/bookings/availability:
+    get:
+      tags: [Bookings]
+      operationId: listBookingAvailability
+      summary: Daftar booking yang memblokir ketersediaan
+      description: Mengembalikan booking selain rejected dan cancelled, diurutkan menurut start_time.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request GET --url "http://localhost:8000/api/v1/bookings/availability?page=1&per_page=25" --header "Authorization: Bearer <token>"
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Halaman data ketersediaan.
+          content:
+            application/json:
+              example:
+                success: true
+                status: true
+                message: Data ketersediaan berhasil dimuat.
+                data: []
+                links: { first: 'http://localhost/api/v1/bookings/availability?page=1', last: 'http://localhost/api/v1/bookings/availability?page=1', prev: null, next: null }
+                meta: { current_page: 1, from: null, last_page: 1, per_page: 25, to: null, total: 0 }
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/bookings/{booking}/approve:
+    patch:
+      tags: [Bookings]
+      operationId: approveBooking
+      summary: Menyetujui booking
+      description: Hanya admin dan hanya booking berstatus pending; request tanpa body.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request PATCH --url http://localhost:8000/api/v1/bookings/10/approve --header "Authorization: Bearer <token>"
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Status booking menjadi approved.
+          content:
+            application/json:
+              example:
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: approved, notes: Review target sprint, cancellation_reason: null, approval_notes: null, created_at: '2026-10-28T08:00:00.000000Z' }
+                status: true
+                message: Operasi booking berhasil.
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Booking bukan lagi pending.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example: { success: false, status: false, message: Booking ini sudah diproses., data: null, errors: [] }
+
+  /v1/bookings/{booking}/reject:
+    patch:
+      tags: [Bookings]
+      operationId: rejectBooking
+      summary: Menolak booking
+      description: Hanya admin dan hanya booking berstatus pending.
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approval_notes]
+              properties:
+                approval_notes: { type: string, minLength: 10, maxLength: 500, example: Jadwal rapat bentrok dengan agenda lain. }
+            example: { approval_notes: Jadwal rapat bentrok dengan agenda lain. }
+      responses:
+        '200':
+          description: Booking ditolak.
+          content:
+            application/json:
+              example:
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: rejected, notes: Review target sprint, cancellation_reason: null, approval_notes: Jadwal rapat bentrok dengan agenda lain., created_at: '2026-10-28T08:00:00.000000Z' }
+                status: true
+                message: Operasi booking berhasil.
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /v1/bookings/{booking}:
+    put:
+      tags: [Bookings]
+      operationId: updateBooking
+      summary: Mengubah booking milik sendiri
+      description: Pemilik booking saja; booking rejected/cancelled tidak dapat diedit. Isi booking mengikuti validasi create dan status kembali menjadi pending.
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BookingInput' }
+            example: { room_id: 1, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00+07:00', end_time: '2026-11-02T10:00:00+07:00', notes: Review target sprint }
+      responses:
+        '200':
+          description: Booking diperbarui dan kembali pending.
+          content:
+            application/json:
+              example:
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: pending, notes: Review target sprint, cancellation_reason: null, approval_notes: null, created_at: '2026-10-28T08:00:00.000000Z' }
+                status: true
+                message: Operasi booking berhasil.
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+    delete:
+      tags: [Bookings]
+      operationId: deleteBooking
+      summary: Menghapus booking milik sendiri
+      description: Hanya pemilik booking; status harus rejected atau cancelled sebelum dihapus.
+      x-codeSamples:
+        - lang: cURL
+          source: >-
+            curl --request DELETE --url http://localhost:8000/api/v1/bookings/10 --header "Authorization: Bearer <token>"
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '204': { description: Booking dihapus; response tanpa body. }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Booking belum cancelled atau rejected.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              example: { success: false, status: false, message: Booking harus dibatalkan atau ditolak terlebih dahulu sebelum dihapus., data: null, errors: [] }
+
+  /v1/bookings/{booking}/cancel:
+    patch:
+      tags: [Bookings]
+      operationId: cancelBooking
+      summary: Membatalkan booking
+      description: Pemilik booking atau admin; limit route 30 permintaan per menit (throttle:30,1). Alasan wajib 10-500 karakter.
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cancellation_reason]
+              properties:
+                cancellation_reason: { type: string, minLength: 10, maxLength: 500, example: Agenda rapat berubah dan tidak diperlukan lagi. }
+            example: { cancellation_reason: Agenda rapat berubah dan tidak diperlukan lagi. }
+      responses:
+        '200':
+          description: Booking dibatalkan.
+          content:
+            application/json:
+              example:
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: cancelled, notes: Review target sprint, cancellation_reason: Agenda rapat berubah dan tidak diperlukan lagi., approval_notes: null, created_at: '2026-10-28T08:00:00.000000Z' }
+                status: true
+                message: Operasi booking berhasil.
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+components:
+  securitySchemes:
+    sanctumBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum token
+      description: >-
+        Gunakan token dari POST /login pada header Authorization: Bearer <token>.
+        Token adalah personal access token Sanctum, bukan cookie session.
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    RoomId:
+      name: room
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+    UserId:
+      name: user
+      in: path
+      required: true
+      schema: { type: integer, example: 2 }
+    BookingId:
+      name: booking
+      in: path
+      required: true
+      schema: { type: integer, example: 10 }
+  schemas:
+    ErrorItem:
+      type: object
+      properties:
+        field: { type: string, example: start_time }
+        message: { type: string, example: Booking hanya dapat dilakukan pada hari kerja dan tidak boleh melewati hari. }
+    ErrorEnvelope:
+      type: object
+      required: [success, status, message, data, errors]
+      properties:
+        success: { type: boolean, example: false }
+        status: { type: boolean, example: false }
+        message: { type: string, example: Validasi gagal. }
+        data: { type: [object, 'null'], example: null }
+        errors:
+          type: array
+          items: { $ref: '#/components/schemas/ErrorItem' }
+    Room:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Ruang Rapat Utama }
+        capacity: { type: integer, example: 12 }
+        location: { type: string, example: Lantai 2 }
+        facilities: { type: [array, 'null'], items: { type: string }, example: [proyektor, whiteboard] }
+        description: { type: [string, 'null'], example: Ruang rapat utama }
+        is_active: { type: boolean, example: true }
+        created_at: { type: string, format: date-time, example: '2026-10-28T08:00:00.000000Z' }
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 2 }
+        name: { type: string, example: Karyawan Satu }
+        email: { type: string, format: email, example: karyawan@example.com }
+        role: { type: string, enum: [admin, karyawan], example: karyawan }
+        status: { type: string, enum: [active, inactive], example: active }
+        created_at: { type: string, format: date-time, example: '2026-10-28T08:00:00.000000Z' }
+    Booking:
+      type: object
+      properties:
+        id: { type: integer, example: 10 }
+        room_id: { type: integer, example: 1 }
+        user: { $ref: '#/components/schemas/User' }
+        room: { $ref: '#/components/schemas/Room' }
+        title: { type: string, example: Review sprint }
+        participant_count: { type: integer, example: 5 }
+        start_time: { type: string, format: date-time, example: '2026-11-02T09:00:00.000000Z' }
+        end_time: { type: string, format: date-time, example: '2026-11-02T10:00:00.000000Z' }
+        status: { type: string, enum: [pending, approved, rejected, cancelled], example: pending }
+        notes: { type: [string, 'null'], example: Review target sprint }
+        cancellation_reason: { type: [string, 'null'], example: null }
+        approval_notes: { type: [string, 'null'], example: null }
+        created_at: { type: string, format: date-time, example: '2026-10-28T08:00:00.000000Z' }
+    RoomInput:
+      type: object
+      required: [name, capacity, location]
+      properties:
+        name: { type: string, maxLength: 255, example: Ruang Rapat Utama }
+        capacity: { type: integer, minimum: 1, example: 12 }
+        location: { type: string, maxLength: 255, example: Lantai 2 }
+        facilities: { type: [array, 'null'], items: { type: string, maxLength: 100 } }
+        description: { type: [string, 'null'], example: Ruang rapat utama }
+        is_active: { type: boolean, default: true }
+    UserCreateInput:
+      type: object
+      required: [name, email, password, role, status]
+      properties:
+        name: { type: string, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 255 }
+        password: { type: string, minLength: 8, format: password }
+        role: { type: string, enum: [admin, karyawan] }
+        status: { type: string, enum: [active, inactive] }
+    UserUpdateInput:
+      type: object
+      required: [role, status]
+      properties:
+        role: { type: string, enum: [admin, karyawan] }
+        status: { type: string, enum: [active, inactive] }
+    BookingInput:
+      type: object
+      required: [room_id, title, participant_count, start_time, end_time]
+      properties:
+        room_id: { type: integer, minimum: 1, description: Harus mengacu ke ruangan aktif. }
+        title: { type: string, maxLength: 255 }
+        participant_count: { type: integer, minimum: 1, description: Tidak boleh melebihi kapasitas ruangan. }
+        start_time: { type: string, format: date-time, description: Harus setelah sekarang dan berada di hari kerja pukul 08.00-17.00. }
+        end_time: { type: string, format: date-time, description: 'Harus setelah start_time, pada hari yang sama dan paling lambat pukul 17.00.' }
+        notes: { type: [string, 'null'] }
+  responses:
+    Unauthenticated:
+      description: Token Bearer tidak ada atau tidak valid.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          example: { success: false, status: false, message: Autentikasi diperlukan., data: null, errors: [] }
+    Forbidden:
+      description: Pengguna terautentikasi tidak memiliki izin.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          example: { success: false, status: false, message: Akses ditolak., data: null, errors: [] }
+    ValidationError:
+      description: Validasi request gagal (termasuk aturan domain booking).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          example:
+            success: false
+            status: false
+            message: Validasi gagal.
+            data: null
+            errors:
+              - { field: start_time, message: Booking hanya dapat dilakukan pada hari kerja dan tidak boleh melewati hari. }
+    TooManyRequests:
+      description: Batas request terlampaui; route login atau store/cancel booking.
+      headers:
+        Retry-After:
+          description: Jumlah detik sebelum percobaan berikutnya diperbolehkan (jika disediakan middleware).
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          example: { success: false, status: false, message: Terlalu banyak permintaan. Silakan coba lagi., data: null, errors: [] }
+    NotFound:
+      description: Resource atau endpoint tidak ditemukan.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+          example: { success: false, status: false, message: Endpoint tidak ditemukan., data: null, errors: [] }
