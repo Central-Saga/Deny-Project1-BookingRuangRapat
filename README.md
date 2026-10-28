@@ -39,6 +39,12 @@ Satu-satunya sumber otorisasi adalah kolom `users.role` (`admin` atau `karyawan`
 | Membatalkan booking | semua | milik sendiri |
 | Menyetujui/menolak booking | ✅ | ❌ |
 
+## API
+
+Spesifikasi OpenAPI 3.1 tersedia di [docs/openapi.yaml](docs/openapi.yaml). Server lokal default adalah `http://localhost:8000/api`. Kecuali `POST /login`, endpoint memerlukan token Sanctum pada header `Authorization: Bearer <token>`.
+
+Spesifikasi ini mencakup seluruh **18 operasi** yang saat ini dideklarasikan di `backend/routes/api.php`. Deskripsi issue menyebut 20 endpoint, tetapi dua route tambahan tidak ditemukan pada source route saat ini. Limit khusus: login 5 request/menit; membuat dan membatalkan booking masing-masing 30 request/menit.
+
 ## Teknologi
 
 | Komponen | Teknologi |
