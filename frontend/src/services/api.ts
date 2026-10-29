@@ -12,9 +12,50 @@ function authHeaders(): HeadersInit {
     return token ? { Accept: 'application/json', Authorization: `Bearer ${token}` } : { Accept: 'application/json' };
 }
 
-async function getErrorMessage(response: Response, fallback: string): Promise<string> {
-    const data = await response.json().catch(() => ({}));
-    return data.message || fallback;
+export interface ApiErrorItem {
+    field?: string;
+    message?: string;
+}
+
+export interface ApiErrorEnvelope {
+    success?: boolean;
+    status?: boolean;
+    message?: string;
+    data?: unknown;
+    errors?: ApiErrorItem[] | Record<string, string[] | string>;
+}
+
+function extractErrorDetails(errors: ApiErrorEnvelope['errors']): string[] {
+    if (!errors) return [];
+    if (Array.isArray(errors)) {
+        return errors
+            .map((item) => (typeof item?.message === 'string' ? item.message.trim() : ''))
+            .filter(Boolean);
+    }
+    if (typeof errors === 'object') {
+        return Object.values(errors)
+            .flatMap((entry) => (Array.isArray(entry) ? entry : [entry]))
+            .map((msg) => (typeof msg === 'string' ? msg.trim() : ''))
+            .filter(Boolean);
+    }
+    return [];
+}
+
+export async function getErrorMessage(response: Response, fallback: string): Promise<string> {
+    const data = (await response.json().catch(() => ({}))) as ApiErrorEnvelope;
+    const message = typeof data?.message === 'string' ? data.message.trim() : '';
+    const details = extractErrorDetails(data?.errors);
+
+    if (message && details.length > 0) {
+        return `${message} (${details.join(', ')})`;
+    }
+    if (message) {
+        return message;
+    }
+    if (details.length > 0) {
+        return details.join(', ');
+    }
+    return fallback;
 }
 
 // Satu pintu untuk semua request API yang membutuhkan autentikasi.
@@ -67,11 +108,15 @@ export async function logout(): Promise<void> {
 }
 
 export function saveToken(token: string): void {
-    window.localStorage.setItem(TOKEN_KEY, token);
+    if (typeof window !== 'undefined') {
+        window.localStorage.setItem(TOKEN_KEY, token);
+    }
 }
 
 export function clearToken(): void {
-    window.localStorage.removeItem(TOKEN_KEY);
+    if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(TOKEN_KEY);
+    }
 }
 
 // Dashboard lama memakai array. Ambil semua halaman agar tidak ada data tersembunyi.
@@ -277,4 +322,3 @@ export async function updateBooking(id: number, payload: {
     const data = await res.json();
     return data.data ?? data;
 }
-
