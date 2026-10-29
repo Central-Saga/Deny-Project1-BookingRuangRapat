@@ -21,6 +21,8 @@ class Booking extends Model
         'notes',
         'cancellation_reason',
         'approval_notes',
+        'approved_by',
+        'decided_at',
     ];
 
     protected function casts(): array
@@ -28,6 +30,7 @@ class Booking extends Model
         return [
             'start_time' => 'datetime',
             'end_time'   => 'datetime',
+            'decided_at' => 'datetime',
             'participant_count' => 'integer',
         ];
     }
@@ -40,5 +43,10 @@ class Booking extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

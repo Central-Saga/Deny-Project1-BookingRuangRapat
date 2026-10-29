@@ -18,7 +18,7 @@ class BookingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Booking::with(['user', 'room'])->latest()->orderByDesc('id');
+        $query = Booking::with(['user', 'room', 'approver'])->latest()->orderByDesc('id');
 
         if (request()->user()->role === 'karyawan') {
             $query->where('user_id', request()->user()->id);
@@ -69,7 +69,7 @@ class BookingController extends Controller
             ]);
         });
 
-        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function availability(Request $request)
@@ -97,9 +97,13 @@ class BookingController extends Controller
         Gate::authorize('approve', $booking);
         abort_unless($booking->status === 'pending', 422, 'Booking ini sudah diproses.');
 
-        $booking->update(['status' => 'approved']);
+        $booking->update([
+            'status' => 'approved',
+            'approved_by' => auth()->id(),
+            'decided_at' => now(),
+        ]);
 
-        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function reject(RejectBookingRequest $request, Booking $booking)
@@ -110,9 +114,11 @@ class BookingController extends Controller
         $booking->update([
             'status' => 'rejected',
             'approval_notes' => strip_tags($request->validated()['approval_notes']),
+            'approved_by' => auth()->id(),
+            'decided_at' => now(),
         ]);
 
-        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function update(UpdateBookingRequest $request, Booking $booking)
@@ -140,10 +146,12 @@ class BookingController extends Controller
                 'end_time' => $validated['end_time'],
                 'notes' => isset($validated['notes']) ? strip_tags($validated['notes']) : null,
                 'status' => 'pending',
+                'approved_by' => null,
+                'decided_at' => null,
             ]);
         });
 
-        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function cancel(CancelBookingRequest $request, Booking $booking)
@@ -156,7 +164,7 @@ class BookingController extends Controller
             'status' => 'cancelled',
             'cancellation_reason' => strip_tags($request->validated()['cancellation_reason']),
         ]);
-        return (new BookingResource($booking->load(['room', 'user'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function destroy(Booking $booking)

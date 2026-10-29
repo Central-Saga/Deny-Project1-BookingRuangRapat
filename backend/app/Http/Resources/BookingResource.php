@@ -22,6 +22,9 @@ class BookingResource extends JsonResource
             'notes'      => $this->notes,
             'cancellation_reason' => $this->cancellation_reason,
             'approval_notes' => $this->approval_notes,
+            'approved_by' => $this->approved_by,
+            'approver'   => $this->whenLoaded('approver'),
+            'decided_at' => $this->decided_at,
             'created_at' => $this->created_at,
         ];
     }

@@ -317,6 +317,9 @@ paths:
                     notes: Review target sprint
                     cancellation_reason: null
                     approval_notes: null
+                    approved_by: null
+                    approver: null
+                    decided_at: null
                     created_at: '2026-10-28T08:00:00.000000Z'
                 links: { first: 'http://localhost/api/v1/bookings?page=1', last: 'http://localhost/api/v1/bookings?page=1', prev: null, next: null }
                 meta: { current_page: 1, from: 1, last_page: 1, per_page: 25, to: 1, total: 1 }
@@ -340,7 +343,7 @@ paths:
           content:
             application/json:
               example:
-                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: pending, notes: Review target sprint, cancellation_reason: null, approval_notes: null, created_at: '2026-10-28T08:00:00.000000Z' }
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: pending, notes: Review target sprint, cancellation_reason: null, approval_notes: null, approved_by: null, approver: null, decided_at: null, created_at: '2026-10-28T08:00:00.000000Z' }
                 status: true
                 message: Operasi booking berhasil.
                 errors: []
@@ -383,7 +386,7 @@ paths:
       tags: [Bookings]
       operationId: approveBooking
       summary: Menyetujui booking
-      description: Hanya admin dan hanya booking berstatus pending; request tanpa body.
+      description: Hanya admin dan hanya booking berstatus pending; request tanpa body. Menyimpan jejak audit approved_by dan decided_at.
       x-codeSamples:
         - lang: cURL
           source: >-
@@ -392,11 +395,11 @@ paths:
         - $ref: '#/components/parameters/BookingId'
       responses:
         '200':
-          description: Status booking menjadi approved.
+          description: Status booking menjadi approved beserta jejak audit approver.
           content:
             application/json:
               example:
-                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: approved, notes: Review target sprint, cancellation_reason: null, approval_notes: null, created_at: '2026-10-28T08:00:00.000000Z' }
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: approved, notes: Review target sprint, cancellation_reason: null, approval_notes: null, approved_by: 1, approver: { id: 1, name: Admin MeetSpace, email: admin@example.com, role: admin }, decided_at: '2026-10-28T09:15:00.000000Z', created_at: '2026-10-28T08:00:00.000000Z' }
                 status: true
                 message: Operasi booking berhasil.
                 errors: []
@@ -415,7 +418,7 @@ paths:
       tags: [Bookings]
       operationId: rejectBooking
       summary: Menolak booking
-      description: Hanya admin dan hanya booking berstatus pending.
+      description: Hanya admin dan hanya booking berstatus pending. Menyimpan approval_notes serta jejak audit approved_by dan decided_at.
       parameters:
         - $ref: '#/components/parameters/BookingId'
       requestBody:
@@ -430,11 +433,11 @@ paths:
             example: { approval_notes: Jadwal rapat bentrok dengan agenda lain. }
       responses:
         '200':
-          description: Booking ditolak.
+          description: Booking ditolak beserta jejak audit approver.
           content:
             application/json:
               example:
-                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: rejected, notes: Review target sprint, cancellation_reason: null, approval_notes: Jadwal rapat bentrok dengan agenda lain., created_at: '2026-10-28T08:00:00.000000Z' }
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: rejected, notes: Review target sprint, cancellation_reason: null, approval_notes: Jadwal rapat bentrok dengan agenda lain., approved_by: 1, approver: { id: 1, name: Admin MeetSpace, email: admin@example.com, role: admin }, decided_at: '2026-10-28T09:15:00.000000Z', created_at: '2026-10-28T08:00:00.000000Z' }
                 status: true
                 message: Operasi booking berhasil.
                 errors: []
@@ -463,7 +466,7 @@ paths:
           content:
             application/json:
               example:
-                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: pending, notes: Review target sprint, cancellation_reason: null, approval_notes: null, created_at: '2026-10-28T08:00:00.000000Z' }
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: pending, notes: Review target sprint, cancellation_reason: null, approval_notes: null, approved_by: null, approver: null, decided_at: null, created_at: '2026-10-28T08:00:00.000000Z' }
                 status: true
                 message: Operasi booking berhasil.
                 errors: []
@@ -519,7 +522,7 @@ paths:
           content:
             application/json:
               example:
-                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: cancelled, notes: Review target sprint, cancellation_reason: Agenda rapat berubah dan tidak diperlukan lagi., approval_notes: null, created_at: '2026-10-28T08:00:00.000000Z' }
+                data: { id: 10, room_id: 1, user: { id: 2, name: Karyawan Satu, email: karyawan@example.com, role: karyawan }, room: { id: 1, name: Ruang Rapat Utama, capacity: 12, location: Lantai 2, facilities: [proyektor], description: Ruang rapat utama, is_active: true, created_at: '2026-10-28T08:00:00.000000Z' }, title: Review sprint, participant_count: 5, start_time: '2026-11-02T09:00:00.000000Z', end_time: '2026-11-02T10:00:00.000000Z', status: cancelled, notes: Review target sprint, cancellation_reason: Agenda rapat berubah dan tidak diperlukan lagi., approval_notes: null, approved_by: null, approver: null, decided_at: null, created_at: '2026-10-28T08:00:00.000000Z' }
                 status: true
                 message: Operasi booking berhasil.
                 errors: []
@@ -616,6 +619,13 @@ components:
         notes: { type: [string, 'null'], example: Review target sprint }
         cancellation_reason: { type: [string, 'null'], example: null }
         approval_notes: { type: [string, 'null'], example: null }
+        approved_by: { type: [integer, 'null'], example: 1, description: ID admin yang menyetujui atau menolak booking. }
+        approver:
+          oneOf:
+            - { $ref: '#/components/schemas/User' }
+            - { type: 'null' }
+          description: Identitas pengguna admin yang mengambil keputusan approve atau reject.
+        decided_at: { type: [string, 'null'], format: date-time, example: '2026-10-28T09:15:00.000000Z', description: Waktu keputusan approve atau reject disimpan. }
         created_at: { type: string, format: date-time, example: '2026-10-28T08:00:00.000000Z' }
     RoomInput:
       type: object
