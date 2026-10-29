@@ -70,7 +70,7 @@ jobs:
         run: php artisan test --display-warnings
 
   frontend:
-    name: Frontend (npm ci + build)
+    name: Frontend (npm ci + test + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -85,4 +85,15 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
-      - run: npm run build
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        run: npm run test:e2e
+
+      - name: Build frontend
+        run: npm run build
