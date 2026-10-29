@@ -112,16 +112,46 @@ class BookingTest extends TestCase
         $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'cancelled']);
     }
 
-    public function test_admin_reject_stores_rejected_status_distinct_from_cancelled()
+    public function test_admin_approve_stores_approved_by_and_decided_at_audit_trail()
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'admin', 'name' => 'Admin Approver']);
         $booking = Booking::factory()->create(['status' => 'pending']);
 
-        $this->actingAs($admin)->patchJson("/api/v1/bookings/{$booking->id}/reject", [
-            'approval_notes' => 'Ruangan dipakai direksi.',
-        ])->assertOk()->assertJsonFragment(['status' => 'rejected']);
+        $response = $this->actingAs($admin)
+            ->patchJson("/api/v1/bookings/{$booking->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'approved')
+            ->assertJsonPath('data.approved_by', $admin->id)
+            ->assertJsonPath('data.approver.id', $admin->id)
+            ->assertJsonPath('data.approver.name', 'Admin Approver');
 
-        $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'rejected']);
+        $this->assertNotNull($response->json('data.decided_at'));
+
+        $booking->refresh();
+        $this->assertSame('approved', $booking->status);
+        $this->assertSame($admin->id, $booking->approved_by);
+        $this->assertNotNull($booking->decided_at);
+    }
+
+    public function test_admin_reject_stores_rejected_status_distinct_from_cancelled()
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'name' => 'Admin Rejector']);
+        $booking = Booking::factory()->create(['status' => 'pending']);
+
+        $response = $this->actingAs($admin)->patchJson("/api/v1/bookings/{$booking->id}/reject", [
+            'approval_notes' => 'Ruangan dipakai direksi.',
+        ])->assertOk()
+          ->assertJsonFragment(['status' => 'rejected'])
+          ->assertJsonPath('data.approved_by', $admin->id)
+          ->assertJsonPath('data.approver.id', $admin->id)
+          ->assertJsonPath('data.approver.name', 'Admin Rejector');
+
+        $this->assertNotNull($response->json('data.decided_at'));
+
+        $booking->refresh();
+        $this->assertSame('rejected', $booking->status);
+        $this->assertSame($admin->id, $booking->approved_by);
+        $this->assertNotNull($booking->decided_at);
     }
 
     public function test_cancelled_and_rejected_bookings_can_be_deleted_but_pending_cannot()
