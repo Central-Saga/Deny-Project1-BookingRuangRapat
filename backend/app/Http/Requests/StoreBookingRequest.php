@@ -15,6 +15,9 @@ class StoreBookingRequest extends FormRequest
         return $this->user()?->can('create', Booking::class) ?? false;
     }
 
+    /**
+     * Audit 496 Tahap 11 (Param 11.8): Validasi isi file lampiran booking dengan mimetypes.
+     */
     public function rules(): array
     {
         return [

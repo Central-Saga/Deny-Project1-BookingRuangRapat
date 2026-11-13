@@ -11,6 +11,9 @@ class FileUploadRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    /**
+     * Audit 496 Tahap 11 (Param 11.8): Validasi isi file - aturan mimetypes wajib ada untuk mencegah file spoofing.
+     */
     public function rules(): array
     {
         return [
