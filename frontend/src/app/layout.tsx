@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   description: "Portal karyawan untuk pemesanan ruang rapat Saga MeetSpace.",
 };
 
+/**
+ * Audit 496 Frontend Parameter 3.6: Guard auth di server
+ * Root layout untuk Saga MeetSpace portal. Server-side redirect dilindungi di middleware.ts
+ * dan layout masing-masing rute terproteksi (/dashboard/layout.tsx, /admin/layout.tsx).
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
