@@ -18,6 +18,7 @@
         </include>
     </source>
     <php>
+        <!-- Audit 496 Tahap 14 (Param 14.1): Suite jalan dari nol - zero config in-memory sqlite -->
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

@@ -1,0 +1,7 @@
+#!/usr/bin/env php
+<?php
+
+// Switch working directory to backend so all relative paths, configurations, and database files resolve properly
+chdir(__DIR__ . '/backend');
+
+require __DIR__ . '/backend/artisan';
