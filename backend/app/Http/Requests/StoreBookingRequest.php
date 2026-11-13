@@ -24,6 +24,13 @@ class StoreBookingRequest extends FormRequest
             'start_time' => ['required', 'date', 'after:now'],
             'end_time'   => ['required', 'date', 'after:start_time'],
             'notes'      => ['nullable', 'string'],
+            'attachment' => [
+                'sometimes',
+                'nullable',
+                'file',
+                'mimetypes:application/pdf,image/jpeg,image/png',
+                'max:10240',
+            ],
         ];
     }
 
