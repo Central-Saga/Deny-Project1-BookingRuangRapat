@@ -41,7 +41,12 @@ class AdminUserController extends Controller
 
     public function store(StoreUserRequest $request)
     {
-        $user = User::create($request->validated());
+        $validated = $request->validated();
+        $user = new User($validated);
+        if (isset($validated['role'])) {
+            $user->role = $validated['role'];
+        }
+        $user->save();
 
         return response()->json(['data' => $user->only(['id', 'name', 'email', 'role', 'status', 'created_at'])], 201);
     }
@@ -53,7 +58,11 @@ class AdminUserController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($user, $validated): void {
-            $user->update($validated);
+            if (isset($validated['role'])) {
+                $user->role = $validated['role'];
+            }
+            $user->fill($validated);
+            $user->save();
 
             if ($user->status === 'inactive') {
                 $user->tokens()->delete();
