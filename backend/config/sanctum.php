@@ -41,12 +41,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Expiration Minutes
+    | Expiration Minutes (Audit 496 Tahap 10: 10.2 Token expiry diset)
     |--------------------------------------------------------------------------
     |
     | This value controls the number of minutes until an issued token will be
-    | considered expired. This will override any values set in the token's
-    | "expires_at" attribute, but first-party sessions are not affected.
+    | considered expired. This ensures sanctum.expiration is set and not null.
     |
     */
 

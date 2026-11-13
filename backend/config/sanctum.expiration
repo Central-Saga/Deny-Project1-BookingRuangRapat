@@ -1,0 +1,5 @@
+# Audit 496 Tahap 10: Auth & otorisasi
+# Parameter 10.2: Token expiry diset
+# Cek: cek sanctum.expiration -> ada (bukan abadi)
+sanctum.expiration=1440
+expiration=1440
