@@ -15,6 +15,7 @@ tags:
   - name: Users
   - name: Bookings
   - name: Queue
+  - name: Uploads
 security:
   - sanctumBearer: []
 paths:
@@ -616,6 +617,41 @@ paths:
                   total: 0
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/uploads:
+    post:
+      tags: [Uploads]
+      operationId: uploadFile
+      summary: Mengunggah file gambar dengan validasi mimetypes, dimensions, dan max size
+      description: File divalidasi memiliki mimetype jpeg/png/webp, dimensi antara 100x100 hingga 4000x4000 piksel, dan ukuran maksimal 5 MB.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: File berhasil diunggah.
+          content:
+            application/json:
+              example:
+                success: true
+                status: true
+                message: File berhasil diunggah.
+                data:
+                  url: http://localhost:8000/storage/uploads/sample.jpg
+                  path: uploads/sample.jpg
+                  size: 1048576
+                  mime_type: image/jpeg
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
 components:
   securitySchemes:

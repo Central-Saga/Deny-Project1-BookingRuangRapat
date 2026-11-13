@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\QueueMonitoringController;
+use App\Http\Controllers\Api\UploadController;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/v1/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -16,8 +17,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::post('/password/change', [AuthController::class, 'changePassword']);
     Route::put('/password', [AuthController::class, 'changePassword']);
+    Route::post('/uploads', [UploadController::class, 'store']);
 
     Route::prefix('v1')->group(function () {
+        Route::post('/uploads', [UploadController::class, 'store']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
