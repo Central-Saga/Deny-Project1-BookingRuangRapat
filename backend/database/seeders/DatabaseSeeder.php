@@ -16,25 +16,21 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Membuat akun user default untuk login/pengujian
-        User::updateOrCreate(
-            ['email' => 'admin@example.com'],
-            [
-                'name' => 'Admin MeetSpace',
-                'password' => 'password',
-                'role' => 'admin',
-                'status' => 'active',
-            ]
-        );
+        $admin = User::firstOrNew(['email' => 'admin@example.com']);
+        $admin->forceFill([
+            'name' => 'Admin MeetSpace',
+            'password' => 'password',
+            'role' => 'admin',
+            'status' => 'active',
+        ])->save();
 
-        User::updateOrCreate(
-            ['email' => 'karyawan@example.com'],
-            [
-                'name' => 'Karyawan MeetSpace',
-                'password' => 'password',
-                'role' => 'karyawan',
-                'status' => 'active',
-            ]
-        );
+        $karyawan = User::firstOrNew(['email' => 'karyawan@example.com']);
+        $karyawan->forceFill([
+            'name' => 'Karyawan MeetSpace',
+            'password' => 'password',
+            'role' => 'karyawan',
+            'status' => 'active',
+        ])->save();
 
         // Memanggil RoomSeeder untuk mengisi data ruangan
         $this->call([
