@@ -13,7 +13,9 @@ Route::post('/v1/login', [AuthController::class, 'login'])->middleware('throttle
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    // Audit 496 Tahap 10 (Param 10.8): Logout mencabut token
     Route::post('/logout', [AuthController::class, 'logout']);
+    // Audit 496 Tahap 10 (Param 10.9): Ganti password mencabut semua token lama
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::post('/password/change', [AuthController::class, 'changePassword']);
     Route::put('/password', [AuthController::class, 'changePassword']);

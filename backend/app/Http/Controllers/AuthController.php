@@ -51,6 +51,9 @@ class AuthController extends Controller
         return response()->json($request->user()->only(['id', 'name', 'email', 'role']));
     }
 
+    /**
+     * Audit 496 Tahap 10 (Param 10.8): Logout mencabut token sehingga token mati untuk request berikutnya.
+     */
     public function logout(Request $request): JsonResponse
     {
         if ($user = $request->user()) {
@@ -73,6 +76,9 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Audit 496 Tahap 10 (Param 10.9): Ganti password mencabut semua token lama user sehingga token lama mati.
+     */
     public function changePassword(Request $request): JsonResponse
     {
         $user = $request->user();

@@ -14,9 +14,14 @@ class AuthAuthorizationAuditTest extends TestCase
 
     public function test_token_expiry_is_configured_and_not_infinite(): void
     {
+        // Parameter 10.2: Expiration harus ada dan bukan null / abadi
+        $this->assertFileExists(base_path('config/sanctum.php'));
+        $this->assertFileExists(base_path('config/sanctum.expiration'));
+        $this->assertFileExists(base_path('../sanctum.expiration'));
+        $this->assertFileExists(base_path('../config/sanctum.php'));
+
         $expiration = config('sanctum.expiration');
 
-        // Parameter 10.2: Expiration harus ada dan bukan null / abadi
         $this->assertNotNull($expiration, 'sanctum.expiration must not be null');
         $this->assertIsInt($expiration);
         $this->assertGreaterThan(0, $expiration);
