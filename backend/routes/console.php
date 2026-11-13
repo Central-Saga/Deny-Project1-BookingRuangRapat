@@ -26,3 +26,4 @@ Schedule::command('bookings:cancel-expired')->everyMinute();
 Schedule::command('queue:monitor default --max=100')->everyMinute();
 Schedule::command('queue:prune-failed --hours=48')->daily();
 Schedule::command('queue:prune-batches --hours=48')->daily();
+Schedule::command('sanctum:prune-expired --hours=48')->daily();

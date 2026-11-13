@@ -94,8 +94,34 @@ paths:
           description: Logout berhasil.
           content:
             application/json:
-              example: { message: Logout berhasil }
+              example: { success: true, status: true, message: Logout berhasil, data: null, errors: [] }
         '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /change-password:
+    post:
+      tags: [Authentication]
+      operationId: changePassword
+      summary: Mengubah password pengguna dan mencabut semua token aktif
+      description: Membutuhkan token autentikasi. Semua sesi login dan token lama dicabut demi keamanan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password]
+              properties:
+                current_password: { type: string, example: PasswordLama123! }
+                password: { type: string, minLength: 8, example: PasswordBaru123! }
+                password_confirmation: { type: string, example: PasswordBaru123! }
+      responses:
+        '200':
+          description: Password berhasil diubah dan semua token lama dicabut.
+          content:
+            application/json:
+              example: { success: true, status: true, message: Password berhasil diubah. Semua sesi login lama telah dicabut., data: null, errors: [] }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
   /v1/rooms:
     get:

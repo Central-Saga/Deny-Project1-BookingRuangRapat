@@ -8,12 +8,24 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\QueueMonitoringController;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/v1/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/password/change', [AuthController::class, 'changePassword']);
+    Route::put('/password', [AuthController::class, 'changePassword']);
 
     Route::prefix('v1')->group(function () {
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/change-password', [AuthController::class, 'changePassword']);
+        Route::post('/password/change', [AuthController::class, 'changePassword']);
+        Route::put('/password', [AuthController::class, 'changePassword']);
+        Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+        Route::put('/user/password', [AuthController::class, 'changePassword']);
         Route::get('/rooms', [RoomController::class, 'index']);
         Route::post('/rooms', [RoomController::class, 'store']);
         Route::put('/rooms/{room}', [RoomController::class, 'update']);
