@@ -66,6 +66,9 @@ jobs:
       - name: Run migrations
         run: php artisan migrate --force
 
+      - name: Restart queue workers
+        run: php artisan queue:restart
+
       - name: Run tests
         run: php artisan test --display-warnings
 

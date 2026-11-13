@@ -14,6 +14,7 @@ tags:
   - name: Rooms
   - name: Users
   - name: Bookings
+  - name: Queue
 security:
   - sanctumBearer: []
 paths:
@@ -531,6 +532,64 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /v1/queue/dashboard:
+    get:
+      tags: [Queue]
+      operationId: getQueueDashboard
+      summary: Mendapatkan ringkasan metrik status antrean dan failed jobs
+      description: Membutuhkan role admin.
+      responses:
+        '200':
+          description: Ringkasan metrik antrean.
+          content:
+            application/json:
+              example:
+                success: true
+                status: true
+                message: Queue dashboard metrics loaded successfully.
+                data:
+                  connection: database
+                  pending_jobs: 0
+                  failed_jobs: 0
+                  status: healthy
+                  prune_configured: true
+                  scheduler_active: true
+                errors: []
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/queue/failed-jobs:
+    get:
+      tags: [Queue]
+      operationId: getFailedJobs
+      summary: Mendapatkan daftar failed jobs terpaginasi
+      description: Membutuhkan role admin.
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: per_page
+          schema: { type: integer, default: 25 }
+      responses:
+        '200':
+          description: Daftar failed jobs.
+          content:
+            application/json:
+              example:
+                success: true
+                status: true
+                message: Data failed jobs berhasil dimuat.
+                data: []
+                errors: []
+                meta:
+                  current_page: 1
+                  last_page: 1
+                  per_page: 25
+                  total: 0
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
 components:
   securitySchemes:

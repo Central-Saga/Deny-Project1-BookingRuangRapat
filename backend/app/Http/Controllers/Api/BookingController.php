@@ -8,6 +8,7 @@ use App\Http\Requests\RejectBookingRequest;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
 use App\Http\Resources\BookingResource;
+use App\Jobs\SendBookingNotification;
 use App\Models\Booking;
 use App\Models\Room;
 use Illuminate\Http\Request;
@@ -69,6 +70,8 @@ class BookingController extends Controller
             ]);
         });
 
+        SendBookingNotification::dispatch($booking->id, 'created');
+
         return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
@@ -103,6 +106,8 @@ class BookingController extends Controller
             'decided_at' => now(),
         ]);
 
+        SendBookingNotification::dispatch($booking->id, 'approved');
+
         return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
@@ -117,6 +122,8 @@ class BookingController extends Controller
             'approved_by' => auth()->id(),
             'decided_at' => now(),
         ]);
+
+        SendBookingNotification::dispatch($booking->id, 'rejected');
 
         return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
@@ -151,6 +158,8 @@ class BookingController extends Controller
             ]);
         });
 
+        SendBookingNotification::dispatch($booking->id, 'updated');
+
         return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
@@ -164,6 +173,8 @@ class BookingController extends Controller
             'status' => 'cancelled',
             'cancellation_reason' => strip_tags($request->validated()['cancellation_reason']),
         ]);
+        SendBookingNotification::dispatch($booking->id, 'cancelled');
+
         return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 

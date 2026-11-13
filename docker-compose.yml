@@ -21,6 +21,29 @@ services:
       db:
         condition: service_healthy
 
+  worker:
+    env_file:
+      - ./backend/.env
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: meetspace_worker
+    restart: always
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    environment:
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-meetspace_db}
+      - DB_USERNAME=${DB_USERNAME:-meetspace_user}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD_required}
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
   frontend:
     build:
       context: ./frontend
