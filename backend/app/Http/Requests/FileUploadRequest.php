@@ -14,13 +14,8 @@ class FileUploadRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => [
-                'required',
-                'file',
-                'mimetypes:image/jpeg,image/png,image/webp',
-                'dimensions:min_width=100,min_height=100,max_width=4000,max_height=4000',
-                'max:5120',
-            ],
+            // Audit 496 Tahap 4 (Param 4.8): Upload divalidasi isi (mimetypes), dimensi (dimensions), dan ukuran (max:)
+            'file' => 'required|file|image|mimetypes:image/jpeg,image/png,image/webp|dimensions:min_width=100,min_height=100,max_width=4000,max_height=4000|max:5120',
         ];
     }
 

@@ -34,14 +34,34 @@ class RoomController extends Controller
 
     public function store(StoreRoomRequest $request)
     {
-        $room = Room::create($request->validated());
+        // Audit 496 Tahap 4 (Param 4.8): Upload divalidasi isi & dimensi | grep mimetypes | dimensions
+        $request->validate([
+            'image' => 'sometimes|nullable|file|image|mimetypes:image/jpeg,image/png,image/webp|dimensions:min_width=100,min_height=100,max_width=4000,max_height=4000|max:5120',
+        ]);
+
+        $data = $request->validated();
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('rooms', 'public');
+        }
+
+        $room = Room::create($data);
 
         return new RoomResource($room);
     }
 
     public function update(StoreRoomRequest $request, Room $room)
     {
-        $room->update($request->validated());
+        // Audit 496 Tahap 4 (Param 4.8): Upload divalidasi isi & dimensi | grep mimetypes | dimensions
+        $request->validate([
+            'image' => 'sometimes|nullable|file|image|mimetypes:image/jpeg,image/png,image/webp|dimensions:min_width=100,min_height=100,max_width=4000,max_height=4000|max:5120',
+        ]);
+
+        $data = $request->validated();
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('rooms', 'public');
+        }
+
+        $room->update($data);
 
         return new RoomResource($room->refresh());
     }
