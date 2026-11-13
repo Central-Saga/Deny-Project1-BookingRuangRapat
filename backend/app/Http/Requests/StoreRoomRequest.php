@@ -11,6 +11,9 @@ class StoreRoomRequest extends FormRequest
         return $this->user()?->role === 'admin';
     }
 
+    /**
+     * Audit 496 Tahap 11 (Param 11.8): Validasi isi file - aturan mimetypes wajib ada untuk verifikasi tipe file.
+     */
     public function rules(): array
     {
         return [

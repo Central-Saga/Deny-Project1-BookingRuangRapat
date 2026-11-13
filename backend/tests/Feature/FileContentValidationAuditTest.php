@@ -14,6 +14,10 @@ class FileContentValidationAuditTest extends TestCase
 
     public function test_backend_has_mimetypes_validation_rules_defined(): void
     {
+        $this->assertFileExists(base_path('app/Http/Requests/FileUploadRequest.php'));
+        $this->assertFileExists(base_path('app/Http/Requests/StoreRoomRequest.php'));
+        $this->assertFileExists(base_path('app/Http/Requests/StoreBookingRequest.php'));
+
         $requestsPath = app_path('Http/Requests');
         $files = glob($requestsPath . '/*.php');
 
