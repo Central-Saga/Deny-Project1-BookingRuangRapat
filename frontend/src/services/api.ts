@@ -111,11 +111,19 @@ export function saveToken(token: string): void {
     if (typeof window !== 'undefined') {
         window.localStorage.setItem(TOKEN_KEY, token);
     }
+    if (typeof document !== 'undefined') {
+        document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
+        document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
+    }
 }
 
 export function clearToken(): void {
     if (typeof window !== 'undefined') {
         window.localStorage.removeItem(TOKEN_KEY);
+    }
+    if (typeof document !== 'undefined') {
+        document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+        document.cookie = `auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
     }
 }
 
