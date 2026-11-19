@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { bookingSchema } from '@/lib/validations/bookingSchema';
+import { bookingSchema as rootBookingSchema } from '../../../lib/validations/bookingSchema';
 
-describe('bookingSchema validation', () => {
+describe('bookingSchema validation (Param 25, 45, 50)', () => {
     const validBooking = {
         room_id: '1',
         title: 'Weekly Product Sync',
@@ -15,6 +16,9 @@ describe('bookingSchema validation', () => {
     it('menerima data booking yang valid pada hari kerja dan jam operasional', () => {
         const result = bookingSchema.safeParse(validBooking);
         expect(result.success).toBe(true);
+
+        const rootResult = rootBookingSchema.safeParse(validBooking);
+        expect(rootResult.success).toBe(true);
     });
 
     it('menolak booking pada akhir pekan (Sabtu/Minggu)', () => {
@@ -42,6 +46,21 @@ describe('bookingSchema validation', () => {
             end_time: '13:00',
         });
         expect(reversedTime.success).toBe(false);
+    });
+
+    it('menolak jika field wajib kosong atau format waktu tidak sesuai', () => {
+        const emptyFields = bookingSchema.safeParse({
+            room_id: '',
+            title: '',
+            participant_count: '0',
+            date: '',
+            start_time: 'invalid',
+            end_time: 'invalid',
+        });
+        expect(emptyFields.success).toBe(false);
+        if (!emptyFields.success) {
+            expect(emptyFields.error.issues.length).toBeGreaterThanOrEqual(4);
+        }
     });
 });
 
