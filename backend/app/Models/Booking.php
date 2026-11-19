@@ -25,11 +25,24 @@ class Booking extends Model
         'decided_at',
     ];
 
+    /**
+     * Audit 496 Parameter 5: Explicit Casts pada Model Booking
+     * start_time => 'datetime', end_time => 'datetime', created_at => 'datetime'
+     */
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time'   => 'datetime',
+        'created_at' => 'datetime',
+        'decided_at' => 'datetime',
+        'participant_count' => 'integer',
+    ];
+
     protected function casts(): array
     {
         return [
             'start_time' => 'datetime',
             'end_time'   => 'datetime',
+            'created_at' => 'datetime',
             'decided_at' => 'datetime',
             'participant_count' => 'integer',
         ];
