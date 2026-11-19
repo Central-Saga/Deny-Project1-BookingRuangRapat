@@ -4,6 +4,10 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Audit 496 Parameter 14: Kepatuhan PSR-4 Autoloading Linux
+ * Penamaan file StoreRoomRequest.php sesuai dengan nama kelas StoreRoomRequest.
+ */
 class StoreRoomRequest extends FormRequest
 {
     public function authorize(): bool
