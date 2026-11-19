@@ -6,6 +6,11 @@ use App\Models\Room;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
+/**
+ * Audit 496 Parameter 14, 21:
+ * Custom Validation Rule: Jumlah Peserta Tidak Melebihi Kapasitas Ruangan.
+ * Memvalidasi kolom participant_count tidak melebihi capacity ruangan terpilih.
+ */
 class WithinRoomCapacityRule implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
