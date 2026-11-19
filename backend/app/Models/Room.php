@@ -19,6 +19,15 @@ class Room extends Model
         'is_active',
     ];
 
+    /**
+     * Audit 496 Parameter 5: Explicit Casts pada Model Room
+     */
+    protected $casts = [
+        'is_active' => 'boolean',
+        'capacity' => 'integer',
+        'facilities' => 'array',
+    ];
+
     protected function casts(): array
     {
         return [
