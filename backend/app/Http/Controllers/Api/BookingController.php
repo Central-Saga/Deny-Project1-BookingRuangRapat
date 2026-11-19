@@ -43,6 +43,11 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * Audit 496 Parameter 37:
+     * DB::transaction dengan Pessimistic Locking (lockForUpdate) pada slot booking dan ruangan.
+     * Mencegah race condition ketika dua user melakukan booking pada detik yang sama.
+     */
     public function store(StoreBookingRequest $request)
     {
         $validated = $request->validated();
