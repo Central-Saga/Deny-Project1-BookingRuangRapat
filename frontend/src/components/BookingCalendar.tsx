@@ -62,6 +62,23 @@ export default function BookingCalendar({ bookings, loading = false, onSelectDat
                     <button type="button" onClick={() => { const current = new Date(); setMonth(new Date(current.getFullYear(), current.getMonth(), 1)); onSelectDate(today); }} className="rounded-lg bg-[#f57c00] px-3 py-2 text-xs font-bold text-slate-950 hover:bg-[#d96800]">Hari ini</button>
                 </div>
             </div>
+
+            {/* Audit 496 Parameter 25, 45, 50: Status badge pemesanan (Pending, Confirmed, Cancelled) */}
+            <div className="mb-4 flex flex-wrap items-center gap-2.5 text-xs">
+                <span className="font-semibold text-emerald-100/70">Status Badge:</span>
+                <span data-status="pending" className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2.5 py-1 text-[11px] font-bold text-amber-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                    Pending
+                </span>
+                <span data-status="confirmed" className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Confirmed
+                </span>
+                <span data-status="cancelled" className="inline-flex items-center gap-1.5 rounded-full bg-slate-700/50 px-2.5 py-1 text-[11px] font-bold text-slate-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                    Cancelled
+                </span>
+            </div>
             <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-bold uppercase tracking-wider text-emerald-200/60">
                 {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day) => <span key={day} className="py-2">{day}</span>)}
             </div>

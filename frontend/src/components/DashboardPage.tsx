@@ -650,7 +650,7 @@ export default function Dashboard() {
                                             <div className="min-w-0">
                                                 <div className="mb-2 flex flex-wrap items-center gap-2">
                                                     <h3 className="truncate text-sm font-bold text-white">{booking.title}</h3>
-                                                    <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${booking.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' : booking.status === 'pending' ? 'bg-amber-500/20 text-amber-300' : booking.status === 'rejected' ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-700/50 text-slate-400'}`}>{bookingStatusLabel(booking)}</span>
+                                                    <span data-status={booking.status} data-testid="status-badge" title={`Status: ${booking.status === 'approved' ? 'Confirmed' : booking.status === 'pending' ? 'Pending' : booking.status === 'cancelled' ? 'Cancelled' : 'Rejected'}`} className={`rounded-full px-2 py-1 text-[10px] font-bold ${booking.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' : booking.status === 'pending' ? 'bg-amber-500/20 text-amber-300' : booking.status === 'rejected' ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-700/50 text-slate-400'}`}>{bookingStatusLabel(booking)}</span>
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-emerald-100/70">
                                                     <span className="font-medium text-white">{formatDate(booking.start_time)}</span>
