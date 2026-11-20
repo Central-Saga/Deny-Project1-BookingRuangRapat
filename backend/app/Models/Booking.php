@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -48,6 +49,38 @@ class Booking extends Model
         ];
     }
 
+    /**
+     * Audit 496 Parameter 51: Sanitasi Input Judul & Agenda Rapat terhadap XSS
+     * Membersihkan tag HTML (strip_tags) pada judul, agenda/notes, dan teks input sebelum disimpan.
+     */
+    protected function title(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value !== null ? trim(strip_tags($value)) : null,
+        );
+    }
+
+    protected function notes(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value !== null ? trim(strip_tags($value)) : null,
+        );
+    }
+
+    protected function cancellationReason(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value !== null ? trim(strip_tags($value)) : null,
+        );
+    }
+
+    protected function approvalNotes(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value !== null ? trim(strip_tags($value)) : null,
+        );
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -63,3 +96,4 @@ class Booking extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 }
+

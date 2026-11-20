@@ -16,6 +16,23 @@ class StoreBookingRequest extends FormRequest
     }
 
     /**
+     * Audit 496 Parameter 51: Sanitasi Input Judul & Agenda Rapat terhadap XSS
+     */
+    protected function prepareForValidation(): void
+    {
+        $merge = [];
+        if ($this->has('title') && is_string($this->title)) {
+            $merge['title'] = trim(strip_tags($this->title));
+        }
+        if ($this->has('notes') && is_string($this->notes)) {
+            $merge['notes'] = trim(strip_tags($this->notes));
+        }
+        if (!empty($merge)) {
+            $this->merge($merge);
+        }
+    }
+
+    /**
      * Audit 496 Tahap 11 (Param 11.8): Validasi isi file lampiran booking dengan mimetypes.
      */
     public function rules(): array
