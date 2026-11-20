@@ -47,6 +47,9 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        // Audit 496 Parameter 52: Double-Submit Protection pada Tombol Konfirmasi Booking
+        if (submitting) return;
+
         setErrors({});
         const result = bookingSchema.safeParse(form);
         if (!result.success) {
@@ -96,8 +99,14 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
                 <div className="grid grid-cols-2 gap-3"><div><label htmlFor="modal-start" className="mb-2 block text-sm font-semibold text-emerald-100">Mulai</label><input id="modal-start" type="time" value={form.start_time} onChange={(event) => updateField('start_time', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]" /><FieldError message={errors.start_time} /></div><div><label htmlFor="modal-end" className="mb-2 block text-sm font-semibold text-emerald-100">Selesai</label><input id="modal-end" type="time" value={form.end_time} onChange={(event) => updateField('end_time', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]" /><FieldError message={errors.end_time} /></div></div>
                 <div><label htmlFor="modal-notes" className="mb-2 block text-sm font-semibold text-emerald-100">Catatan <span className="font-normal text-emerald-200/50">(opsional)</span></label><textarea id="modal-notes" rows={3} maxLength={500} value={form.notes} onChange={(event) => updateField('notes', event.target.value)} className="w-full resize-none rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white" /><FieldError message={errors.notes} /></div>
                 <div className="flex justify-end gap-3">
-                    <button type="button" onClick={onClose} className="rounded-xl border border-emerald-800 px-4 py-3 text-sm font-semibold text-emerald-100 hover:bg-emerald-900/50">Batal</button>
-                    <button type="submit" disabled={submitting} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#f57c00] px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-60">
+                    <button type="button" disabled={submitting} onClick={onClose} className="rounded-xl border border-emerald-800 px-4 py-3 text-sm font-semibold text-emerald-100 hover:bg-emerald-900/50 disabled:cursor-not-allowed disabled:opacity-50">Batal</button>
+                    <button
+                        type="submit"
+                        disabled={submitting}
+                        aria-busy={submitting}
+                        data-loading={submitting}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#f57c00] px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
                         {submitting ? (
                             <>
                                 <svg className="h-4 w-4 animate-spin text-slate-950" viewBox="0 0 24 24" fill="none">
