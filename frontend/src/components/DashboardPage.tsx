@@ -214,6 +214,9 @@ export default function Dashboard() {
 
     async function handleSubmit(event: FormEvent) {
         event.preventDefault();
+        // Audit 496 Parameter 52: Double-Submit Protection pada Tombol Konfirmasi Booking
+        if (submitting) return;
+
         setFormErrors({});
         const result = bookingSchema.safeParse(formData);
         if (!result.success) {
@@ -612,7 +615,27 @@ export default function Dashboard() {
                                 <div className="mt-1 text-right text-[11px] text-emerald-200/50">{formData.notes.length}/500</div>
                                 <FieldError message={formErrors.notes} />
                             </div>
-                            <button type="submit" disabled={submitting} className="w-full rounded-xl bg-[#f57c00] py-3.5 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:opacity-60">{submitting ? 'Menyimpan booking...' : editingBooking ? 'Simpan perubahan' : 'Ajukan booking'}</button>
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                aria-busy={submitting}
+                                data-loading={submitting}
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#f57c00] py-3.5 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {submitting ? (
+                                    <>
+                                        <svg className="h-4 w-4 animate-spin text-slate-950" viewBox="0 0 24 24" fill="none">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                        </svg>
+                                        <span>Menyimpan booking...</span>
+                                    </>
+                                ) : editingBooking ? (
+                                    'Simpan perubahan'
+                                ) : (
+                                    'Ajukan booking'
+                                )}
+                            </button>
                         </form>
                     </section>
 
