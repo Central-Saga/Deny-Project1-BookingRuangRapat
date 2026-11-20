@@ -184,21 +184,30 @@ class UniformErrorResponseSchemaAuditTest extends TestCase
         $employee = User::factory()->create(['role' => 'karyawan']);
         $room = Room::factory()->create(['capacity' => 10, 'is_active' => true]);
 
-        // Existing booking
+        $start = \Illuminate\Support\Carbon::now('Asia/Makassar')
+            ->nextWeekday()
+            ->setTime(9, 0)
+            ->setTimezone(config('app.timezone'));
+        $end = (clone $start)->addHours(2);
+
+        // Existing booking: 09:00 - 11:00
         Booking::factory()->create([
             'room_id' => $room->id,
-            'start_time' => '2026-11-20 09:00:00',
-            'end_time' => '2026-11-20 11:00:00',
+            'start_time' => $start->toDateTimeString(),
+            'end_time' => $end->toDateTimeString(),
             'status' => 'pending',
         ]);
 
-        // Attempt overlapping booking
+        // Attempt overlapping booking: 10:00 - 12:00
+        $overlapStart = (clone $start)->addHour();
+        $overlapEnd = (clone $end)->addHour();
+
         $response = $this->actingAs($employee)->postJson('/api/v1/bookings', [
             'room_id' => $room->id,
             'title' => 'Overlapping Booking Attempt',
             'participant_count' => 5,
-            'start_time' => '2026-11-20 10:00:00',
-            'end_time' => '2026-11-20 12:00:00',
+            'start_time' => $overlapStart->toDateTimeString(),
+            'end_time' => $overlapEnd->toDateTimeString(),
         ]);
 
         $response->assertStatus(422)
