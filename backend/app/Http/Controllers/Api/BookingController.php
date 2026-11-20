@@ -25,8 +25,13 @@ class BookingController extends Controller
             $query->where('user_id', request()->user()->id);
         }
 
+        // Audit 496 Parameter 21: Filter Riwayat Booking Berdasarkan Tanggal & Ruangan
         if ($request->filled('date')) {
             $query->whereDate('start_time', $request->string('date')->toString());
+        }
+
+        if ($request->filled('room_id')) {
+            $query->where('room_id', $request->integer('room_id'));
         }
 
         $pagination = $request->validate([
