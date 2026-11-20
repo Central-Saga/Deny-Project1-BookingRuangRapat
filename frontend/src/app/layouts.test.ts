@@ -23,18 +23,18 @@ describe('Server-side Guard Layouts (Frontend Param 3.6)', () => {
     it('redirects to / when accessing /dashboard without auth token', async () => {
         vi.mocked(cookies).mockResolvedValue({
             get: vi.fn().mockReturnValue(undefined),
-        } as any);
+        } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-        await expect(DashboardLayout({ children: 'content' as any })).rejects.toThrow('REDIRECT:/');
+        await expect(DashboardLayout({ children: 'content' })).rejects.toThrow('REDIRECT:/');
         expect(redirect).toHaveBeenCalledWith('/');
     });
 
     it('allows accessing /dashboard when auth token cookie is present', async () => {
         vi.mocked(cookies).mockResolvedValue({
             get: vi.fn((name: string) => (name === 'meetspace_auth_token' ? { value: 'token-123' } : undefined)),
-        } as any);
+        } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-        const result = await DashboardLayout({ children: 'dashboard-content' as any });
+        const result = await DashboardLayout({ children: 'dashboard-content' });
         expect(result).toBeDefined();
         expect(redirect).not.toHaveBeenCalled();
     });
@@ -42,18 +42,18 @@ describe('Server-side Guard Layouts (Frontend Param 3.6)', () => {
     it('redirects to / when accessing /admin without auth token', async () => {
         vi.mocked(cookies).mockResolvedValue({
             get: vi.fn().mockReturnValue(undefined),
-        } as any);
+        } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-        await expect(AdminLayout({ children: 'content' as any })).rejects.toThrow('REDIRECT:/');
+        await expect(AdminLayout({ children: 'content' })).rejects.toThrow('REDIRECT:/');
         expect(redirect).toHaveBeenCalledWith('/');
     });
 
     it('allows accessing /admin when auth_token cookie is present', async () => {
         vi.mocked(cookies).mockResolvedValue({
             get: vi.fn((name: string) => (name === 'auth_token' ? { value: 'admin-token' } : undefined)),
-        } as any);
+        } as unknown as Awaited<ReturnType<typeof cookies>>);
 
-        const result = await AdminLayout({ children: 'admin-content' as any });
+        const result = await AdminLayout({ children: 'admin-content' });
         expect(result).toBeDefined();
         expect(redirect).not.toHaveBeenCalled();
     });
