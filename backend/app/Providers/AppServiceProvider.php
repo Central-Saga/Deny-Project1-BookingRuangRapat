@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Database\Eloquent\Model; // Tambahkan namespace ini
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,5 +25,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Mencegah lazy loading saat bukan di environment production
         Model::preventLazyLoading(!app()->isProduction());
+
+        // Audit 496 Parameter 29: RateLimiter untuk endpoint pemesanan rapat (30 request per menit)
+        RateLimiter::for('bookings', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }
