@@ -52,7 +52,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Audit 496 Tahap 10 (Param 10.8): Logout mencabut token sehingga token mati untuk request berikutnya.
+     * Audit 496 Parameter 26: Token Invalidation saat Logout Pengguna.
+     * Pastikan token otentikasi Sanctum dihapus permanen saat endpoint logout dipanggil
+     * sehingga token mati untuk request berikutnya.
      */
     public function logout(Request $request): JsonResponse
     {
@@ -68,11 +70,11 @@ class AuthController extends Controller
         auth()->forgetGuards();
 
         return response()->json([
-            'success' => true,
             'status' => true,
             'message' => 'Logout berhasil',
             'data' => null,
             'errors' => [],
+            'success' => true,
         ]);
     }
 
