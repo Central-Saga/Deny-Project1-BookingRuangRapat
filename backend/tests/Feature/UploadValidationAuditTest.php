@@ -18,9 +18,7 @@ class UploadValidationAuditTest extends TestCase
     {
         // Backend parameter 4.8: Upload divalidasi isi (mimetypes), dimensi (dimensions), dan ukuran (max:)
         $this->assertFileExists(base_path('app/Http/Requests/StoreRoomRequest.php'));
-        $this->assertFileExists(base_path('../app/Http/Requests/StoreRoomRequest.php'));
         $this->assertFileExists(base_path('app/Http/Requests/FileUploadRequest.php'));
-        $this->assertFileExists(base_path('../app/Http/Requests/FileUploadRequest.php'));
 
         $fileRequest = new FileUploadRequest();
         $fileRules = $fileRequest->rules()['file'];

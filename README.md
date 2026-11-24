@@ -245,6 +245,20 @@ Backend menyimpan pengujian Laravel pada `backend/tests/`. Contoh menjalankan te
 docker compose exec -T backend php artisan test
 ```
 
+### Menjalankan Backend Secara Lokal (Tanpa Docker)
+
+Untuk menjalankan dan menguji backend secara langsung dari host:
+
+```powershell
+cd backend
+composer install
+Copy-Item .env.example .env
+php artisan key:generate
+php artisan test
+```
+
+> **Catatan Struktur Monorepo:** Seluruh kode aplikasi backend Laravel, file konfigurasi, dependensi Composer (`composer.json`), artisan CLI script (`artisan`), migrasi, dan test suite berada di dalam direktori `backend/`. Direktori root repository adalah workspace monorepo (backend + frontend). Selalu jalankan perintah artisan dari dalam direktori `backend/` (`cd backend && php artisan ...`) atau via Docker Compose (`docker compose exec backend php artisan ...`).
+
 Periksa konfigurasi database pengujian sebelum menjalankan test; jangan gunakan database berisi data penting. Frontend dapat dicek melalui build Docker atau perintah npm di direktori `frontend` jika Node.js tersedia pada host.
 
 ---
