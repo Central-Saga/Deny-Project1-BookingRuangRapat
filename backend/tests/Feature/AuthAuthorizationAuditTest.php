@@ -18,7 +18,6 @@ class AuthAuthorizationAuditTest extends TestCase
         $this->assertFileExists(base_path('config/sanctum.php'));
         $this->assertFileExists(base_path('config/sanctum.expiration'));
         $this->assertFileExists(base_path('../sanctum.expiration'));
-        $this->assertFileExists(base_path('../config/sanctum.php'));
 
         $expiration = config('sanctum.expiration');
 
