@@ -1,6 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import DashboardLayout from './dashboard/layout';
 import AdminLayout from './admin/layout';
+import DashboardPageServer from './dashboard/page';
+import AdminPageServer from './admin/page';
+
+vi.mock('@/components/DashboardPage', () => ({
+    default: () => 'MockDashboardPageComponent',
+}));
 
 vi.mock('next/headers', () => ({
     cookies: vi.fn(),
@@ -56,5 +62,23 @@ describe('Server-side Guard Layouts (Frontend Param 3.6)', () => {
         const result = await AdminLayout({ children: 'admin-content' });
         expect(result).toBeDefined();
         expect(redirect).not.toHaveBeenCalled();
+    });
+
+    it('redirects to / when accessing /dashboard page.tsx without auth token', async () => {
+        vi.mocked(cookies).mockResolvedValue({
+            get: vi.fn().mockReturnValue(undefined),
+        } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+        await expect(DashboardPageServer()).rejects.toThrow('REDIRECT:/');
+        expect(redirect).toHaveBeenCalledWith('/');
+    });
+
+    it('redirects to / when accessing /admin page.tsx without auth token', async () => {
+        vi.mocked(cookies).mockResolvedValue({
+            get: vi.fn().mockReturnValue(undefined),
+        } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+        await expect(AdminPageServer()).rejects.toThrow('REDIRECT:/');
+        expect(redirect).toHaveBeenCalledWith('/');
     });
 });
