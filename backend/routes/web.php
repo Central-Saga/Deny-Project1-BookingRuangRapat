@@ -6,6 +6,8 @@ use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('/dashboard', [HomeController::class, 'redirectToHome'])->name('dashboard');
+Route::get('/admin', [HomeController::class, 'redirectToHome'])->name('admin');
 
 Route::get('/dashboard/queue', [QueueMonitoringController::class, 'webDashboard'])->name('queue.dashboard');
 Route::get('/admin/queue', [QueueMonitoringController::class, 'webDashboard'])->name('admin.queue');

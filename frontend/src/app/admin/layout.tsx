@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Audit 496 Frontend Parameter 3.6: Guard auth di server
  * Memastikan rute terproteksi /admin melakukan redirect server-side
