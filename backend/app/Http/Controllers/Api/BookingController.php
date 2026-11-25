@@ -8,214 +8,87 @@ use App\Http\Requests\RejectBookingRequest;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
 use App\Http\Resources\BookingResource;
-use App\Jobs\SendBookingNotification;
 use App\Models\Booking;
-use App\Models\Room;
+use App\Services\BookingService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class BookingController extends Controller
 {
+    public function __construct(protected BookingService $bookingService) {}
+
     public function index(Request $request)
     {
-        $query = Booking::with(['user', 'room', 'approver'])->latest()->orderByDesc('id');
-
-        if (request()->user()->role === 'karyawan') {
-            $query->where('user_id', request()->user()->id);
-        }
-
-        // Audit 496 Parameter 21: Filter Riwayat Booking Berdasarkan Tanggal & Ruangan
-        if ($request->filled('date')) {
-            $query->whereDate('start_time', $request->string('date')->toString());
-        }
-
-        if ($request->filled('room_id')) {
-            $query->where('room_id', $request->integer('room_id'));
-        }
-
-        $pagination = $request->validate([
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
-
-        $bookings = $query->paginate((int) ($pagination['per_page'] ?? 25));
-        return BookingResource::collection($bookings)->additional([
-            'success' => true,
-            'status' => true,
-            'message' => 'Data booking berhasil dimuat.',
-            'errors' => [],
-        ]);
+        $p = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
+        $bookings = $this->bookingService->getBookings(
+            $request->user(),
+            $request->filled('date') ? $request->string('date')->toString() : null,
+            $request->filled('room_id') ? $request->integer('room_id') : null,
+            (int) ($p['per_page'] ?? 25)
+        );
+        return BookingResource::collection($bookings)->additional(['success' => true, 'status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
     }
 
-    /**
-     * Audit 496 Parameter 37:
-     * DB::transaction dengan Pessimistic Locking (lockForUpdate) pada slot booking dan ruangan.
-     * Mencegah race condition ketika dua user melakukan booking pada detik yang sama.
-     */
     public function store(StoreBookingRequest $request)
     {
-        $validated = $request->validated();
-
-        $booking = DB::transaction(function () use ($request, $validated): Booking {
-            Room::whereKey($validated['room_id'])->where('is_active', true)->lockForUpdate()->firstOrFail();
-            $isConflict = Booking::where('room_id', $validated['room_id'])
-                ->whereNotIn('status', ['rejected', 'cancelled'])
-                ->where('start_time', '<', $validated['end_time'])
-                ->where('end_time', '>', $validated['start_time'])
-                ->lockForUpdate()
-                ->exists();
-
-            if ($isConflict) abort(422, 'Ruangan sudah dibooking pada jadwal tersebut.');
-
-            return Booking::create([
-                'user_id' => $request->user()->id,
-                'room_id' => $validated['room_id'],
-                'title' => strip_tags($validated['title']),
-                'participant_count' => $validated['participant_count'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'status' => 'pending',
-                'notes' => isset($validated['notes']) ? strip_tags($validated['notes']) : null,
-            ]);
-        });
-
-        SendBookingNotification::dispatch($booking->id, 'created');
-
-        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+        $booking = $this->bookingService->createBooking($request->user(), $request->validated());
+        return (new BookingResource($booking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function availability(Request $request)
     {
-        $pagination = $request->validate([
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
-
-        $bookings = Booking::with('room')
-            ->whereNotIn('status', ['rejected', 'cancelled'])
-            ->orderBy('start_time')->orderBy('id')
-            ->paginate((int) ($pagination['per_page'] ?? 25));
-
-        return BookingResource::collection($bookings)->additional([
-            'success' => true,
-            'status' => true,
-            'message' => 'Data ketersediaan berhasil dimuat.',
-            'errors' => [],
-        ]);
-    }
-
-    public function approve(Booking $booking)
-    {
-        Gate::authorize('approve', $booking);
-        abort_unless($booking->status === 'pending', 422, 'Booking ini sudah diproses.');
-
-        $booking->update([
-            'status' => 'approved',
-            'approved_by' => auth()->id(),
-            'decided_at' => now(),
-        ]);
-
-        SendBookingNotification::dispatch($booking->id, 'approved');
-
-        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
-    }
-
-    public function reject(RejectBookingRequest $request, Booking $booking)
-    {
-        Gate::authorize('reject', $booking);
-        abort_unless($booking->status === 'pending', 422, 'Booking ini sudah diproses.');
-
-        $booking->update([
-            'status' => 'rejected',
-            'approval_notes' => strip_tags($request->validated()['approval_notes']),
-            'approved_by' => auth()->id(),
-            'decided_at' => now(),
-        ]);
-
-        SendBookingNotification::dispatch($booking->id, 'rejected');
-
-        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+        $p = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
+        $bookings = $this->bookingService->getAvailability((int) ($p['per_page'] ?? 25));
+        return BookingResource::collection($bookings)->additional(['success' => true, 'status' => true, 'message' => 'Data ketersediaan berhasil dimuat.', 'errors' => []]);
     }
 
     public function show(Booking $booking)
     {
         Gate::authorize('view', $booking);
-
-        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional([
-            'status' => true,
-            'message' => 'Data booking berhasil dimuat.',
-            'errors' => [],
-        ]);
+        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
     }
 
     public function updateCollection(UpdateBookingRequest $request)
     {
         $id = $request->input('id') ?? $request->input('booking_id');
-        if ($id && ($booking = Booking::find($id))) {
+        if ($id && ($booking = $this->bookingService->findBooking((int) $id))) {
             return $this->update($request, $booking);
         }
-
         abort(422, 'ID booking harus disertakan.');
     }
 
     public function update(UpdateBookingRequest $request, Booking $booking)
     {
         Gate::authorize('update', $booking);
-        abort_if(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking yang sudah dibatalkan atau ditolak tidak dapat diedit.');
+        $updatedBooking = $this->bookingService->updateBooking($booking, $request->validated());
+        return (new BookingResource($updatedBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+    }
 
-        $validated = $request->validated();
-        DB::transaction(function () use ($booking, $validated): void {
-            Room::whereKey($validated['room_id'])->where('is_active', true)->lockForUpdate()->firstOrFail();
-            $isConflict = Booking::where('room_id', $validated['room_id'])
-                ->where('id', '<>', $booking->id)
-                ->whereNotIn('status', ['rejected', 'cancelled'])
-                ->where('start_time', '<', $validated['end_time'])
-                ->where('end_time', '>', $validated['start_time'])
-                ->lockForUpdate()
-                ->exists();
-            if ($isConflict) abort(422, 'Ruangan sudah dibooking pada jadwal tersebut.');
+    public function approve(Booking $booking)
+    {
+        Gate::authorize('approve', $booking);
+        $approvedBooking = $this->bookingService->approveBooking($booking, (int) auth()->id());
+        return (new BookingResource($approvedBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+    }
 
-            $booking->update([
-                'room_id' => $validated['room_id'],
-                'title' => strip_tags($validated['title']),
-                'participant_count' => $validated['participant_count'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'notes' => isset($validated['notes']) ? strip_tags($validated['notes']) : null,
-                'status' => 'pending',
-                'approved_by' => null,
-                'decided_at' => null,
-            ]);
-        });
-
-        SendBookingNotification::dispatch($booking->id, 'updated');
-
-        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+    public function reject(RejectBookingRequest $request, Booking $booking)
+    {
+        Gate::authorize('reject', $booking);
+        $rejectedBooking = $this->bookingService->rejectBooking($booking, (int) auth()->id(), $request->validated()['approval_notes']);
+        return (new BookingResource($rejectedBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function cancel(CancelBookingRequest $request, Booking $booking)
     {
         Gate::authorize('cancel', $booking);
-
-        abort_if(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking ini sudah dibatalkan atau ditolak.');
-
-        $booking->update([
-            'status' => 'cancelled',
-            'cancellation_reason' => strip_tags($request->validated()['cancellation_reason']),
-        ]);
-        SendBookingNotification::dispatch($booking->id, 'cancelled');
-
-        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
+        $cancelledBooking = $this->bookingService->cancelBooking($booking, $request->validated()['cancellation_reason']);
+        return (new BookingResource($cancelledBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
     public function destroy(Booking $booking)
     {
         Gate::authorize('delete', $booking);
-        abort_unless(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking harus dibatalkan atau ditolak terlebih dahulu sebelum dihapus.');
-
-        $booking->delete();
-
+        $this->bookingService->deleteBooking($booking);
         return response()->noContent();
     }
 }
