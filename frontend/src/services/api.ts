@@ -4,17 +4,20 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api')
 const TOKEN_KEY = 'meetspace_auth_token';
 
 export function getToken(): string | null {
+    if (typeof window !== 'undefined') {
+        try {
+            const localToken = window.localStorage.getItem(TOKEN_KEY);
+            if (localToken) {
+                return localToken;
+            }
+        } catch {
+            // ignore
+        }
+    }
     if (typeof document !== 'undefined') {
         const match = document.cookie.match(new RegExp('(?:^|;\\s*)(?:' + TOKEN_KEY + '|auth_token|token)=([^;]*)'));
         if (match && match[1]) {
             return decodeURIComponent(match[1]);
-        }
-    }
-    if (typeof window !== 'undefined') {
-        try {
-            return window.localStorage.getItem(TOKEN_KEY);
-        } catch {
-            return null;
         }
     }
     return null;
