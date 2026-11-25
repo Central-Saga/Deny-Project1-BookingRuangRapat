@@ -87,6 +87,8 @@ describe('services/api', () => {
                 },
             })
         );
+
+        clearToken();
     });
 
     it('menangani respons 401 dengan menghapus token dan me-redirect ke halaman login (/)', async () => {

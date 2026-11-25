@@ -31,6 +31,8 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
+        $cookieMinutes = (int) config('sanctum.expiration', 1440);
+        $secure = $request->isSecure();
 
         return response()->json([
             'success' => true,
@@ -43,7 +45,9 @@ class AuthController extends Controller
                 'user' => $user->only(['id', 'name', 'email', 'role']),
             ],
             'errors' => [],
-        ]);
+        ])->cookie('meetspace_auth_token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Lax')
+          ->cookie('auth_token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Lax')
+          ->cookie('token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Lax');
     }
 
     public function me(Request $request): JsonResponse
@@ -75,7 +79,9 @@ class AuthController extends Controller
             'data' => null,
             'errors' => [],
             'success' => true,
-        ]);
+        ])->withoutCookie('meetspace_auth_token', '/')
+          ->withoutCookie('auth_token', '/')
+          ->withoutCookie('token', '/');
     }
 
     /**

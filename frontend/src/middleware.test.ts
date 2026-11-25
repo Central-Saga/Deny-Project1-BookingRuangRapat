@@ -49,5 +49,18 @@ describe('Server-side Auth Guard Middleware (Frontend param 3.6)', () => {
 
         expect(res.status).toBe(200);
     });
+
+    it('attaches HSTS and XCTO security headers to all responses', () => {
+        const reqPublic = new NextRequest('http://localhost:3000/');
+        const resPublic = middleware(reqPublic);
+        expect(resPublic.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
+        expect(resPublic.headers.get('X-Content-Type-Options')).toBe('nosniff');
+        expect(resPublic.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+
+        const reqProtected = new NextRequest('http://localhost:3000/dashboard');
+        const resProtected = middleware(reqProtected);
+        expect(resProtected.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
+        expect(resProtected.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    });
 });
 

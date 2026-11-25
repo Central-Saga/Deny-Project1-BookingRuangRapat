@@ -3,8 +3,28 @@ import { Booking, Room, User } from '@/types';
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 const TOKEN_KEY = 'meetspace_auth_token';
 
-function getToken(): string | null {
-    return typeof window === 'undefined' ? null : window.localStorage.getItem(TOKEN_KEY);
+export function getToken(): string | null {
+    if (typeof window !== 'undefined') {
+        try {
+            const localToken = window.localStorage.getItem(TOKEN_KEY);
+            if (localToken) {
+                return localToken;
+            }
+        } catch {
+            // ignore
+        }
+    }
+    if (typeof document !== 'undefined') {
+        const match = document.cookie.match(new RegExp('(?:^|;\\s*)(?:' + TOKEN_KEY + '|auth_token|token)=([^;]*)'));
+        if (match && match[1]) {
+            return decodeURIComponent(match[1]);
+        }
+    }
+    return null;
+}
+
+export function hasToken(): boolean {
+    return Boolean(getToken());
 }
 
 function authHeaders(): HeadersInit {
