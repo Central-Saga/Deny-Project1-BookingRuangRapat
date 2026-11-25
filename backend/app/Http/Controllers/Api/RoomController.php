@@ -49,6 +49,21 @@ class RoomController extends Controller
         return new RoomResource($room);
     }
 
+    public function show(Room $room)
+    {
+        return new RoomResource($room);
+    }
+
+    public function updateCollection(StoreRoomRequest $request)
+    {
+        $id = $request->input('id') ?? $request->input('room_id');
+        if ($id && ($room = Room::find($id))) {
+            return $this->update($request, $room);
+        }
+
+        abort(422, 'ID ruangan harus disertakan.');
+    }
+
     public function update(StoreRoomRequest $request, Room $room)
     {
         // Audit 496 Tahap 4 (Param 4.8): Upload divalidasi isi & dimensi | grep mimetypes | dimensions

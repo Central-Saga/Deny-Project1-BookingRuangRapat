@@ -15,15 +15,35 @@ class StoreRoomRequest extends FormRequest
         return $this->user()?->role === 'admin';
     }
 
+    protected function prepareForValidation(): void
+    {
+        $merge = [];
+        if ($this->has('stok') && !$this->has('capacity')) {
+            $merge['capacity'] = $this->input('stok');
+        } elseif ($this->has('stock') && !$this->has('capacity')) {
+            $merge['capacity'] = $this->input('stock');
+        }
+        if (!empty($merge)) {
+            $this->merge($merge);
+        }
+    }
+
     /**
      * Audit 496 Tahap 11 (Param 11.8): Validasi isi file - aturan mimetypes wajib ada untuk verifikasi tipe file.
      */
     public function rules(): array
     {
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
+
         return [
-            'name'         => 'required|string|max:255',
-            'capacity'     => 'required|integer|min:1',
-            'location'     => 'required|string|max:255',
+            'name'         => $isUpdate ? 'sometimes|string|max:255' : 'required|string|max:255',
+            'capacity'     => $isUpdate ? 'sometimes|integer|min:1' : 'required|integer|min:1',
+            'stok'         => 'sometimes|integer|min:0',
+            'stock'        => 'sometimes|integer|min:0',
+            'harga'        => 'sometimes|numeric|min:0',
+            'price'        => 'sometimes|numeric|min:0',
+            'saldo'        => 'sometimes|numeric|min:0',
+            'location'     => $isUpdate ? 'sometimes|string|max:255' : 'required|string|max:255',
             'facilities'   => ['nullable', 'array'],
             'facilities.*' => ['string', 'max:100'],
             'description'  => 'nullable|string',
@@ -36,6 +56,12 @@ class StoreRoomRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'capacity.min' => 'Kapasitas ruangan harus minimal 1 orang dan tidak boleh negatif.',
+            'stok.min'     => 'Stok ruangan tidak boleh bernilai negatif.',
+            'stock.min'    => 'Stok ruangan tidak boleh bernilai negatif.',
+            'harga.min'    => 'Harga tidak boleh bernilai negatif.',
+            'price.min'    => 'Harga tidak boleh bernilai negatif.',
+            'saldo.min'    => 'Saldo tidak boleh bernilai negatif.',
             'image.mimetypes' => 'Format gambar ruangan harus JPEG, PNG, atau WEBP.',
             'image.dimensions' => 'Dimensi gambar ruangan minimal 100x100 dan maksimal 4000x4000 piksel.',
             'image.max' => 'Ukuran gambar ruangan maksimal 5 MB.',

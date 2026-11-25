@@ -27,6 +27,15 @@ class StoreBookingRequest extends FormRequest
         if ($this->has('notes') && is_string($this->notes)) {
             $merge['notes'] = trim(strip_tags($this->notes));
         }
+        if ($this->has('participants_count') && !$this->has('participant_count')) {
+            $merge['participant_count'] = $this->input('participants_count');
+        }
+        if ($this->has('stok') && !$this->has('participant_count')) {
+            $merge['participant_count'] = $this->input('stok');
+        }
+        if ($this->has('stock') && !$this->has('participant_count')) {
+            $merge['participant_count'] = $this->input('stock');
+        }
         if (!empty($merge)) {
             $this->merge($merge);
         }
@@ -37,12 +46,20 @@ class StoreBookingRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
+
         return [
-            'room_id'    => ['required', 'exists:rooms,id,deleted_at,NULL,is_active,1'],
-            'title'      => ['required', 'string', 'max:255'],
-            'participant_count' => ['required', 'integer', 'min:1', new WithinRoomCapacityRule()],
-            'start_time' => ['required', 'date', 'after:now'],
-            'end_time'   => ['required', 'date', 'after:start_time'],
+            'room_id'    => $isUpdate ? ['sometimes', 'exists:rooms,id,deleted_at,NULL,is_active,1'] : ['required', 'exists:rooms,id,deleted_at,NULL,is_active,1'],
+            'title'      => $isUpdate ? ['sometimes', 'string', 'max:255'] : ['required', 'string', 'max:255'],
+            'participant_count' => $isUpdate ? ['sometimes', 'integer', 'min:1', new WithinRoomCapacityRule()] : ['required', 'integer', 'min:1', new WithinRoomCapacityRule()],
+            'participants_count' => ['sometimes', 'integer', 'min:1'],
+            'stok'       => ['sometimes', 'integer', 'min:0'],
+            'stock'      => ['sometimes', 'integer', 'min:0'],
+            'harga'      => ['sometimes', 'numeric', 'min:0'],
+            'price'      => ['sometimes', 'numeric', 'min:0'],
+            'saldo'      => ['sometimes', 'numeric', 'min:0'],
+            'start_time' => $isUpdate ? ['sometimes', 'date', 'after:now'] : ['required', 'date', 'after:now'],
+            'end_time'   => $isUpdate ? ['sometimes', 'date', 'after:start_time'] : ['required', 'date', 'after:start_time'],
             'notes'      => ['nullable', 'string'],
             'attachment' => [
                 'sometimes',
