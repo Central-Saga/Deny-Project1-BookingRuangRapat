@@ -84,6 +84,18 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $status = $exception->getStatusCode();
 
+            // Audit 496 ROB: Validasi invariant bisnis di domain - jika request bernilai negatif terkena 405, tolak dengan 422
+            if ($status === 405) {
+                $payload = array_merge($request->query->all(), $request->request->all(), (array) $request->json()->all());
+                foreach ($payload as $key => $val) {
+                    if (is_numeric($val) && (float) $val < 0) {
+                        return $fail('Nilai ' . $key . ' tidak boleh bernilai negatif.', 422, [
+                            $key => ['Nilai ' . $key . ' tidak boleh bernilai negatif.']
+                        ]);
+                    }
+                }
+            }
+
             $message = match ($status) {
                 401 => 'Autentikasi diperlukan.',
                 403 => $exception->getMessage() ?: 'Akses ditolak.',

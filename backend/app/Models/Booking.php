@@ -50,6 +50,28 @@ class Booking extends Model
     }
 
     /**
+     * Audit 496 Parameter ROB (Robustness):
+     * Validasi Invariant Bisnis di Domain Model.
+     * Jumlah peserta rapat wajib bernilai positif (minimal 1) dan tidak boleh nol atau negatif.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Booking $booking): void {
+            if ($booking->participant_count !== null && (int) $booking->participant_count < 1) {
+                abort(422, 'Jumlah peserta rapat harus minimal 1 orang dan tidak boleh negatif.');
+            }
+        });
+    }
+
+    public function setParticipantCountAttribute($value): void
+    {
+        if ($value !== null && (int) $value < 1) {
+            abort(422, 'Jumlah peserta rapat harus minimal 1 orang dan tidak boleh negatif.');
+        }
+        $this->attributes['participant_count'] = $value !== null ? (int) $value : null;
+    }
+
+    /**
      * Audit 496 Parameter 51: Sanitasi Input Judul & Agenda Rapat terhadap XSS
      * Membersihkan tag HTML (strip_tags) pada judul, agenda/notes, dan teks input sebelum disimpan.
      */

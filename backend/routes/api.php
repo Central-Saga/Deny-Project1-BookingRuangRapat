@@ -35,19 +35,30 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/user/password', [AuthController::class, 'changePassword']);
         Route::get('/rooms', [RoomController::class, 'index']);
         Route::post('/rooms', [RoomController::class, 'store']);
+        Route::match(['put', 'patch'], '/rooms', [RoomController::class, 'updateCollection']);
+        Route::get('/rooms/{room}', [RoomController::class, 'show']);
         Route::put('/rooms/{room}', [RoomController::class, 'update']);
+        Route::patch('/rooms/{room}', [RoomController::class, 'update']);
+        Route::post('/rooms/{room}', [RoomController::class, 'update']);
         Route::delete('/rooms/{room}', [RoomController::class, 'destroy']);
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::post('/users', [AdminUserController::class, 'store']);
-        Route::put('/users/{user}', [AdminUserController::class, 'update']);
+        Route::match(['put', 'patch', 'post'], '/users/{user}', [AdminUserController::class, 'update']);
         Route::get('/bookings', [BookingController::class, 'index']);
         Route::get('/bookings/availability', [BookingController::class, 'availability']);
         // Audit 496 Parameter 29: RateLimiter Throttle pada Endpoint Pemesanan Rapat (throttle:30,1)
         Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:30,1');
-        Route::patch('/bookings/{booking}/approve', [BookingController::class, 'approve']);
-        Route::patch('/bookings/{booking}/reject', [BookingController::class, 'reject']);
         Route::put('/bookings/{booking}', [BookingController::class, 'update'])->middleware('throttle:30,1');
+        Route::patch('/bookings/{booking}', [BookingController::class, 'update'])->middleware('throttle:30,1');
+        Route::post('/bookings/{booking}', [BookingController::class, 'update'])->middleware('throttle:30,1');
+        Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+        Route::match(['put', 'patch'], '/bookings', [BookingController::class, 'updateCollection'])->middleware('throttle:30,1');
         Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:30,1');
+        Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('throttle:30,1');
+        Route::patch('/bookings/{booking}/approve', [BookingController::class, 'approve']);
+        Route::post('/bookings/{booking}/approve', [BookingController::class, 'approve']);
+        Route::patch('/bookings/{booking}/reject', [BookingController::class, 'reject']);
+        Route::post('/bookings/{booking}/reject', [BookingController::class, 'reject']);
         Route::delete('/bookings/{booking}', [BookingController::class, 'destroy']);
 
         Route::get('/queue/dashboard', [QueueMonitoringController::class, 'dashboard']);

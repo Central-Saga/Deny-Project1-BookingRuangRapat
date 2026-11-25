@@ -17,6 +17,11 @@ class BookingPolicy
         return in_array($user->role, ['admin', 'karyawan'], true);
     }
 
+    public function view(User $user, Booking $booking): bool
+    {
+        return $user->role === 'admin' || (int) $user->id === (int) $booking->user_id;
+    }
+
     public function update(User $user, Booking $booking): bool
     {
         return $user->role === 'admin' || (int) $user->id === (int) $booking->user_id;

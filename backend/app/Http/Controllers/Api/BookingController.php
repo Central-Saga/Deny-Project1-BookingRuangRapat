@@ -138,6 +138,27 @@ class BookingController extends Controller
         return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
+    public function show(Booking $booking)
+    {
+        Gate::authorize('view', $booking);
+
+        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional([
+            'status' => true,
+            'message' => 'Data booking berhasil dimuat.',
+            'errors' => [],
+        ]);
+    }
+
+    public function updateCollection(UpdateBookingRequest $request)
+    {
+        $id = $request->input('id') ?? $request->input('booking_id');
+        if ($id && ($booking = Booking::find($id))) {
+            return $this->update($request, $booking);
+        }
+
+        abort(422, 'ID booking harus disertakan.');
+    }
+
     public function update(UpdateBookingRequest $request, Booking $booking)
     {
         Gate::authorize('update', $booking);

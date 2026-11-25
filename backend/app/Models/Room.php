@@ -37,6 +37,28 @@ class Room extends Model
         ];
     }
 
+    /**
+     * Audit 496 Parameter ROB (Robustness):
+     * Validasi Invariant Bisnis di Domain Model.
+     * Kapasitas ruangan wajib bernilai positif (minimal 1) dan tidak boleh nol atau negatif.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Room $room): void {
+            if ($room->capacity !== null && (int) $room->capacity < 1) {
+                abort(422, 'Kapasitas ruangan harus minimal 1 orang dan tidak boleh negatif.');
+            }
+        });
+    }
+
+    public function setCapacityAttribute($value): void
+    {
+        if ($value !== null && (int) $value < 1) {
+            abort(422, 'Kapasitas ruangan harus minimal 1 orang dan tidak boleh negatif.');
+        }
+        $this->attributes['capacity'] = $value !== null ? (int) $value : null;
+    }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class);
