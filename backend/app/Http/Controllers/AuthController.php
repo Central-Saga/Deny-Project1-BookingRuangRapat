@@ -2,25 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
+/**
+ * Controller Otentikasi (Audit 496 Parameter ARC: Thin Controller, 0 query).
+ */
 class AuthController extends Controller
 {
+    public function __construct(
+        protected AuthService $authService
+    ) {}
+
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
-        $user = User::where('email', $credentials['email'])->first();
+        $authData = $this->authService->attemptLogin($credentials['email'], $credentials['password']);
 
-        if (!$user || $user->status !== 'active' || !Hash::check($credentials['password'], $user->password)) {
+        if (!$authData) {
             return response()->json([
                 'success' => false,
                 'status' => false,
@@ -30,8 +36,9 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-        $cookieMinutes = (int) config('sanctum.expiration', 1440);
+        $user = $authData['user'];
+        $token = $authData['token'];
+        $cookieMinutes = $authData['cookieMinutes'];
         $secure = $request->isSecure();
 
         return response()->json([
@@ -55,22 +62,10 @@ class AuthController extends Controller
         return response()->json($request->user()->only(['id', 'name', 'email', 'role']));
     }
 
-    /**
-     * Audit 496 Parameter 26: Token Invalidation saat Logout Pengguna.
-     * Pastikan token otentikasi Sanctum dihapus permanen saat endpoint logout dipanggil
-     * sehingga token mati untuk request berikutnya.
-     */
     public function logout(Request $request): JsonResponse
     {
-        if ($user = $request->user()) {
-            if ($token = $user->currentAccessToken()) {
-                $token->delete();
-            } else {
-                $user->tokens()->delete();
-            }
-            $request->setUserResolver(fn () => null);
-        }
-
+        $this->authService->logout($request->user());
+        $request->setUserResolver(fn () => null);
         auth()->forgetGuards();
 
         return response()->json([
@@ -84,9 +79,6 @@ class AuthController extends Controller
           ->withoutCookie('token', '/');
     }
 
-    /**
-     * Audit 496 Tahap 10 (Param 10.9): Ganti password mencabut semua token lama user sehingga token lama mati.
-     */
     public function changePassword(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -106,9 +98,7 @@ class AuthController extends Controller
         ]);
 
         if ($confirmation !== null) {
-            $validator->sometimes('password_confirmation', ['same:password'], function () use ($confirmation) {
-                return $confirmation !== null;
-            });
+            $validator->sometimes('password_confirmation', ['same:password'], fn () => $confirmation !== null);
         }
 
         if ($validator->fails()) {
@@ -136,15 +126,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($user, $newPassword): void {
-            $user->update([
-                'password' => Hash::make($newPassword),
-            ]);
-
-            // Revoke all existing tokens for this user so old tokens become dead
-            $user->tokens()->delete();
-        });
-
+        $this->authService->changePassword($user, $newPassword);
         $request->setUserResolver(fn () => null);
         auth()->forgetGuards();
 

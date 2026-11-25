@@ -3,45 +3,34 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\QueueMonitoringService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
+/**
+ * Controller Monitoring Antrean (Audit 496 Parameter ARC: Thin Controller, 0 query).
+ */
 class QueueMonitoringController extends Controller
 {
-    /**
-     * Get queue dashboard metrics and status.
-     */
+    public function __construct(
+        protected QueueMonitoringService $queueService
+    ) {}
+
     public function dashboard(Request $request): JsonResponse
     {
         if ($request->user()) {
             abort_unless($request->user()->role === 'admin', 403, 'Hanya admin yang dapat mengakses queue monitoring.');
         }
 
-        $pendingJobs = Schema::hasTable('jobs') ? DB::table('jobs')->count() : 0;
-        $failedJobs = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0;
-
         return response()->json([
             'success' => true,
             'status' => true,
             'message' => 'Queue dashboard metrics loaded successfully.',
-            'data' => [
-                'connection' => config('queue.default'),
-                'pending_jobs' => $pendingJobs,
-                'failed_jobs' => $failedJobs,
-                'status' => $failedJobs > 0 ? 'warning' : 'healthy',
-                'prune_configured' => true,
-                'scheduler_active' => true,
-            ],
+            'data' => $this->queueService->getDashboardMetrics(),
             'errors' => [],
         ]);
     }
 
-    /**
-     * List failed jobs with pagination.
-     */
     public function failedJobs(Request $request): JsonResponse
     {
         if ($request->user()) {
@@ -53,11 +42,7 @@ class QueueMonitoringController extends Controller
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $query = Schema::hasTable('failed_jobs')
-            ? DB::table('failed_jobs')->orderByDesc('failed_at')
-            : DB::table('failed_jobs')->whereRaw('1 = 0');
-
-        $jobs = $query->paginate((int) ($pagination['per_page'] ?? 25));
+        $jobs = $this->queueService->getFailedJobs((int) ($pagination['per_page'] ?? 25));
 
         return response()->json([
             'success' => true,
@@ -74,14 +59,10 @@ class QueueMonitoringController extends Controller
         ]);
     }
 
-    /**
-     * Retry a specific failed job.
-     */
     public function retryJob(Request $request, string|int $id): JsonResponse
     {
         abort_unless($request->user()->role === 'admin', 403, 'Hanya admin yang dapat merestart job.');
-
-        Artisan::call('queue:retry', ['id' => [$id]]);
+        $this->queueService->retryJob($id);
 
         return response()->json([
             'success' => true,
@@ -92,14 +73,10 @@ class QueueMonitoringController extends Controller
         ]);
     }
 
-    /**
-     * Retry all failed jobs.
-     */
     public function retryAll(Request $request): JsonResponse
     {
         abort_unless($request->user()->role === 'admin', 403, 'Hanya admin yang dapat merestart semua job.');
-
-        Artisan::call('queue:retry', ['id' => ['all']]);
+        $this->queueService->retryAll();
 
         return response()->json([
             'success' => true,
@@ -110,14 +87,10 @@ class QueueMonitoringController extends Controller
         ]);
     }
 
-    /**
-     * Delete / forget a specific failed job.
-     */
     public function deleteJob(Request $request, string|int $id): JsonResponse
     {
         abort_unless($request->user()->role === 'admin', 403, 'Hanya admin yang dapat menghapus failed job.');
-
-        Artisan::call('queue:forget', ['id' => $id]);
+        $this->queueService->deleteJob($id);
 
         return response()->json([
             'success' => true,
@@ -128,14 +101,10 @@ class QueueMonitoringController extends Controller
         ]);
     }
 
-    /**
-     * Flush all failed jobs.
-     */
     public function flush(Request $request): JsonResponse
     {
         abort_unless($request->user()->role === 'admin', 403, 'Hanya admin yang dapat menghapus semua failed job.');
-
-        Artisan::call('queue:flush');
+        $this->queueService->flush();
 
         return response()->json([
             'success' => true,
@@ -146,20 +115,16 @@ class QueueMonitoringController extends Controller
         ]);
     }
 
-    /**
-     * Web dashboard endpoint returning HTML or JSON depending on Accept header.
-     */
     public function webDashboard(Request $request)
     {
         if ($request->wantsJson()) {
             return $this->dashboard($request);
         }
 
-        $pendingJobs = Schema::hasTable('jobs') ? DB::table('jobs')->count() : 0;
-        $failedJobs = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0;
+        $metrics = $this->queueService->getDashboardMetrics();
 
         return response(
-            "<!DOCTYPE html><html><head><title>Queue Dashboard</title></head><body><h1>Queue & Job Dashboard</h1><p>Status: Healthy</p><p>Pending Jobs: {$pendingJobs}</p><p>Failed Jobs: {$failedJobs}</p></body></html>",
+            "<!DOCTYPE html><html><head><title>Queue Dashboard</title></head><body><h1>Queue & Job Dashboard</h1><p>Status: Healthy</p><p>Pending Jobs: {$metrics['pending_jobs']}</p><p>Failed Jobs: {$metrics['failed_jobs']}</p></body></html>",
             200,
             ['Content-Type' => 'text/html']
         );
