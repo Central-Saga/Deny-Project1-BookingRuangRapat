@@ -15,11 +15,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $seedPassword = env('SEED_PASSWORD', 'password');
+
         // Membuat akun user default untuk login/pengujian
         $admin = User::firstOrNew(['email' => 'admin@example.com']);
         $admin->forceFill([
             'name' => 'Admin MeetSpace',
-            'password' => 'password',
+            'password' => $seedPassword,
             'role' => 'admin',
             'status' => 'active',
         ])->save();
@@ -27,7 +29,7 @@ class DatabaseSeeder extends Seeder
         $karyawan = User::firstOrNew(['email' => 'karyawan@example.com']);
         $karyawan->forceFill([
             'name' => 'Karyawan MeetSpace',
-            'password' => 'password',
+            'password' => $seedPassword,
             'role' => 'karyawan',
             'status' => 'active',
         ])->save();

@@ -1,0 +1,78 @@
+# Standar 496 - Audit Manifest
+# Saga MeetSpace: Sistem Booking Ruang Rapat
+standard: 496
+version: "1.0"
+name: "Saga MeetSpace - Sistem Booking Ruang Rapat"
+type: "monorepo"
+
+stack:
+  backend:
+    framework: "laravel"
+    path: "backend"
+    php: "8.3"
+    port: 8000
+  frontend:
+    framework: "nextjs"
+    path: "frontend"
+    node: "20"
+    port: 3000
+  database:
+    type: "postgresql"
+    version: "16"
+    port: 5432
+
+seed_accounts:
+  admin:
+    email: "admin@example.com"
+    role: "admin"
+    password_env: "SEED_PASSWORD"
+  karyawan:
+    email: "karyawan@example.com"
+    role: "karyawan"
+    password_env: "SEED_PASSWORD"
+
+roles:
+  - role: "admin"
+    email: "admin@example.com"
+    description: "Administrator fasilitas dengan hak akses penuh ke data ruangan, pengguna, dan approval booking."
+  - role: "karyawan"
+    email: "karyawan@example.com"
+    description: "Karyawan / staf umum dengan hak akses melihat ruangan, ketersediaan jadwal, dan membuat booking."
+
+documentation:
+  prd: "docs/PRD.md"
+  audit: "docs/AUDIT.md"
+  openapi: "docs/openapi.yaml"
+  readme: "README.md"
+
+acceptance_criteria:
+  - id: "AC-01"
+    title: "Autentikasi Pengguna & Manajemen Token Sesi"
+  - id: "AC-02"
+    title: "Role-Based Access Control (RBAC) & Proteksi Mass Assignment"
+  - id: "AC-03"
+    title: "Manajemen Data Ruang Rapat"
+  - id: "AC-04"
+    title: "Pengecualian Ruangan Nonaktif & Soft-Deleted"
+  - id: "AC-05"
+    title: "Batasan Jam Operasional Kantor 08:00-17:00 WITA"
+  - id: "AC-06"
+    title: "Pembatasan Peserta Sesuai Kapasitas Ruangan"
+  - id: "AC-07"
+    title: "Pencegahan Konflik Jadwal & Pessimistic Locking"
+  - id: "AC-08"
+    title: "Pengajuan Pemesanan Ruang Rapat"
+  - id: "AC-09"
+    title: "Sanitasi Input Judul & Agenda Rapat terhadap XSS"
+  - id: "AC-10"
+    title: "Persetujuan & Penolakan Booking oleh Admin"
+  - id: "AC-11"
+    title: "Pembatalan Pemesanan & Proteksi IDOR"
+  - id: "AC-12"
+    title: "Pencarian & Filter Jadwal Pemesanan"
+  - id: "AC-13"
+    title: "Rate Limiting & Throttle API"
+  - id: "AC-14"
+    title: "Uniform Error Response Schema"
+  - id: "AC-15"
+    title: "Antarmuka Kalender Interaktif & Proteksi Double-Submit"
