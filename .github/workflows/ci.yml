@@ -74,6 +74,9 @@ jobs:
 
       - name: Run tests
         run: php artisan test --display-warnings
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
 
   frontend:
     name: Frontend (npm ci + test + build)
