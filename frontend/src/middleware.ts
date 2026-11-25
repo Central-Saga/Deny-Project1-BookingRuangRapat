@@ -24,11 +24,21 @@ export function middleware(request: NextRequest) {
 
         if (!token) {
             const loginUrl = new URL('/', request.url);
-            return NextResponse.redirect(loginUrl);
+            const redirectResponse = NextResponse.redirect(loginUrl);
+            redirectResponse.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+            redirectResponse.headers.set('X-Content-Type-Options', 'nosniff');
+            redirectResponse.headers.set('X-Frame-Options', 'SAMEORIGIN');
+            redirectResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+            return redirectResponse;
         }
     }
 
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    return response;
 }
 
 export const config = {

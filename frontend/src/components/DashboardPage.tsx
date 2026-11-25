@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { cancelBooking, clearToken, createBooking, deleteBooking, getAvailability, getBookings, getCurrentUser, getRooms, login, logout, saveToken, updateBooking } from '@/services/api';
+import { cancelBooking, clearToken, createBooking, deleteBooking, getAvailability, getBookings, getCurrentUser, getRooms, getToken, hasToken, login, logout, saveToken, updateBooking } from '@/services/api';
 import { Booking, Room, User } from '@/types';
 import { bookingSchema } from '@/lib/validations/bookingSchema';
 import BookingCalendar from '@/components/BookingCalendar';
@@ -159,7 +159,7 @@ export default function Dashboard() {
         async function initializeAuth() {
             setAuthLoading(true);
             setAuthError(null);
-            const token = window.localStorage.getItem('meetspace_auth_token');
+            const token = getToken();
             if (!token) {
                 setAuthLoading(false);
                 return;
@@ -171,7 +171,7 @@ export default function Dashboard() {
                 if (currentUser.role === 'karyawan' && pathname === '/admin') router.replace('/dashboard');
                 if (currentUser.role !== 'admin') await loadData();
             } catch (authFailure: unknown) {
-                if (window.localStorage.getItem('meetspace_auth_token')) {
+                if (hasToken()) {
                     // Server offline/5xx tidak sama dengan token kedaluwarsa.
                     setAuthError(errorMessage(authFailure, 'Tidak dapat memeriksa sesi.'));
                 } else {
