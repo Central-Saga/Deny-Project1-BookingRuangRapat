@@ -59,6 +59,9 @@ jobs:
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Copy environment file
+        run: cp .env.example .env
+
       # phpunit.xml memaksa DB_HOST=db_test, jadi petakan ke service PostgreSQL.
       - name: Map db_test hostname
         run: echo "127.0.0.1 db_test" | sudo tee -a /etc/hosts
