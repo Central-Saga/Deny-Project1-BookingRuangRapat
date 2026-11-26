@@ -67,11 +67,17 @@ class SecurityHeadersAndCookieAuditTest extends TestCase
         $webResponse->assertHeader('X-Content-Type-Options', 'nosniff');
         $webResponse->assertHeader('X-Frame-Options', 'SAMEORIGIN');
         $webResponse->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $webResponse->assertHeader('Permissions-Policy');
+        $webResponse->assertHeader('Content-Security-Policy');
 
         // 2. Respon API publik / unauthenticated error
         $apiResponse = $this->getJson('/api/v1/rooms');
         $apiResponse->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         $apiResponse->assertHeader('X-Content-Type-Options', 'nosniff');
+        $apiResponse->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $apiResponse->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $apiResponse->assertHeader('Permissions-Policy');
+        $apiResponse->assertHeader('Content-Security-Policy');
 
         // 3. Respon API login
         $loginResponse = $this->postJson('/api/login', [
@@ -80,6 +86,57 @@ class SecurityHeadersAndCookieAuditTest extends TestCase
         ]);
         $loginResponse->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         $loginResponse->assertHeader('X-Content-Type-Options', 'nosniff');
+        $loginResponse->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+        $loginResponse->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $loginResponse->assertHeader('Permissions-Policy');
+        $loginResponse->assertHeader('Content-Security-Policy');
+    }
+
+    /**
+     * Audit 496 Parameter SEC (Issue #176):
+     * Header keamanan dasar: HSTS/nosniff/frame/referrer/permissions,
+     * CSP terpasang tanpa unsafe-inline, dan X-Powered-By dihilangkan.
+     */
+    public function test_basic_security_headers_hsts_nosniff_frame_referrer_permissions_csp_without_unsafe_inline(): void
+    {
+        $endpoints = ['/', '/api/v1/rooms', '/api/v1/login'];
+
+        foreach ($endpoints as $endpoint) {
+            $response = $endpoint === '/api/v1/login'
+                ? $this->postJson($endpoint, ['email' => 'test@example.com', 'password' => 'secret'])
+                : $this->get($endpoint);
+
+            // 1. HSTS
+            $response->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
+            // 2. nosniff (X-Content-Type-Options)
+            $response->assertHeader('X-Content-Type-Options', 'nosniff');
+
+            // 3. frame protection (X-Frame-Options)
+            $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+
+            // 4. referrer (Referrer-Policy)
+            $response->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+            // 5. permissions (Permissions-Policy)
+            $permissions = $response->headers->get('Permissions-Policy');
+            $this->assertNotNull($permissions, "Endpoint {$endpoint} harus memiliki Permissions-Policy");
+            $this->assertStringContainsString('camera=()', $permissions);
+            $this->assertStringContainsString('microphone=()', $permissions);
+            $this->assertStringContainsString('geolocation=()', $permissions);
+
+            // 6. CSP terpasang tanpa unsafe-inline
+            $csp = $response->headers->get('Content-Security-Policy');
+            $this->assertNotNull($csp, "Endpoint {$endpoint} harus memiliki Content-Security-Policy");
+            $this->assertStringNotContainsString('unsafe-inline', $csp, "CSP pada {$endpoint} tidak boleh mengandung unsafe-inline.");
+            $this->assertStringContainsString("default-src 'self'", $csp);
+
+            // 7. X-Powered-By dihapus
+            $this->assertFalse(
+                $response->headers->has('X-Powered-By'),
+                "Endpoint {$endpoint} tidak boleh mengekspos header X-Powered-By."
+            );
+        }
     }
 
     /**
