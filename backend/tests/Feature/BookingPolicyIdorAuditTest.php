@@ -107,7 +107,7 @@ class BookingPolicyIdorAuditTest extends TestCase
 
     public function test_policy_cancel_direct_method_evaluation(): void
     {
-        $policy = new BookingPolicy();
+        $policy = new BookingPolicy;
 
         $owner = User::factory()->make(['id' => 10, 'role' => 'karyawan']);
         $otherEmployee = User::factory()->make(['id' => 20, 'role' => 'karyawan']);

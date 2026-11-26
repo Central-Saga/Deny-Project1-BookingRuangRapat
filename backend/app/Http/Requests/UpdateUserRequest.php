@@ -14,7 +14,7 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'role'   => ['sometimes', 'in:admin,karyawan'],
+            'role' => ['sometimes', 'in:admin,karyawan'],
             'status' => ['sometimes', 'in:active,inactive'],
             'avatar' => [
                 'sometimes',

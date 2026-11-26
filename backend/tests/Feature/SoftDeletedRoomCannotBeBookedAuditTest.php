@@ -29,7 +29,7 @@ class SoftDeletedRoomCannotBeBookedAuditTest extends TestCase
 
         return [
             'start' => $start,
-            'end'   => $end,
+            'end' => $end,
         ];
     }
 
@@ -42,12 +42,12 @@ class SoftDeletedRoomCannotBeBookedAuditTest extends TestCase
         $employee = User::factory()->create(['role' => 'karyawan']);
 
         $activeRoom = Room::factory()->create([
-            'name'      => 'Ruangan Aktif Tersedia',
+            'name' => 'Ruangan Aktif Tersedia',
             'is_active' => true,
         ]);
 
         $softDeletedRoom = Room::factory()->create([
-            'name'      => 'Ruangan Non-Aktif Terhapus',
+            'name' => 'Ruangan Non-Aktif Terhapus',
             'is_active' => true,
         ]);
 
@@ -81,8 +81,8 @@ class SoftDeletedRoomCannotBeBookedAuditTest extends TestCase
     {
         $employee = User::factory()->create(['role' => 'karyawan']);
         $softDeletedRoom = Room::factory()->create([
-            'name'      => 'Ruang Rapat Arsip',
-            'capacity'  => 10,
+            'name' => 'Ruang Rapat Arsip',
+            'capacity' => 10,
             'is_active' => true,
         ]);
 
@@ -93,12 +93,12 @@ class SoftDeletedRoomCannotBeBookedAuditTest extends TestCase
         $slot = $this->getNextWorkingSlot(10, 2);
 
         $payload = [
-            'room_id'           => $softDeletedRoom->id,
-            'title'             => 'Pemesanan Ruangan yang Sudah Dihapus',
+            'room_id' => $softDeletedRoom->id,
+            'title' => 'Pemesanan Ruangan yang Sudah Dihapus',
             'participant_count' => 4,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
-            'notes'             => 'Percobaan booking ruangan soft-deleted.',
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
+            'notes' => 'Percobaan booking ruangan soft-deleted.',
         ];
 
         $response = $this->actingAs($employee)->postJson('/api/v1/bookings', $payload);
@@ -129,22 +129,22 @@ class SoftDeletedRoomCannotBeBookedAuditTest extends TestCase
         $slot = $this->getNextWorkingSlot(13, 2);
 
         $booking = Booking::factory()->create([
-            'user_id'           => $employee->id,
-            'room_id'           => $activeRoom->id,
-            'title'             => 'Rapat Awal di Ruangan Aktif',
+            'user_id' => $employee->id,
+            'room_id' => $activeRoom->id,
+            'title' => 'Rapat Awal di Ruangan Aktif',
             'participant_count' => 5,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
-            'status'            => 'pending',
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
+            'status' => 'pending',
         ]);
 
         // Mencoba update ruangan ke soft-deleted room
         $response = $this->actingAs($employee)->putJson("/api/v1/bookings/{$booking->id}", [
-            'room_id'           => $softDeletedRoom->id,
-            'title'             => 'Mencoba Pindah ke Ruang Terhapus',
+            'room_id' => $softDeletedRoom->id,
+            'title' => 'Mencoba Pindah ke Ruang Terhapus',
             'participant_count' => 5,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
         ]);
 
         $response->assertStatus(422)
@@ -179,11 +179,11 @@ class SoftDeletedRoomCannotBeBookedAuditTest extends TestCase
 
         // Karyawan mencoba booking ke ruangan yang baru saja dihapus
         $bookingResponse = $this->actingAs($employee)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Percobaan Booking Pasca Hapus Admin',
+            'room_id' => $room->id,
+            'title' => 'Percobaan Booking Pasca Hapus Admin',
             'participant_count' => 3,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
         ]);
 
         $bookingResponse->assertStatus(422)

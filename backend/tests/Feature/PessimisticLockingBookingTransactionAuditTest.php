@@ -32,11 +32,11 @@ class PessimisticLockingBookingTransactionAuditTest extends TestCase
         });
 
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Pessimistic Lock',
+            'room_id' => $room->id,
+            'title' => 'Rapat Pessimistic Lock',
             'participant_count' => 5,
-            'start_time'        => $startTime->toDateTimeString(),
-            'end_time'          => $endTime->toDateTimeString(),
+            'start_time' => $startTime->toDateTimeString(),
+            'end_time' => $endTime->toDateTimeString(),
         ];
 
         $response = $this->actingAs($admin)->postJson('/api/v1/bookings', $payload);
@@ -49,9 +49,9 @@ class PessimisticLockingBookingTransactionAuditTest extends TestCase
 
         // Pada SQLite, transactions automatically lock tables. Pada PostgreSQL/MySQL query contains 'for update'.
         $this->assertDatabaseHas('bookings', [
-            'title'   => 'Rapat Pessimistic Lock',
+            'title' => 'Rapat Pessimistic Lock',
             'room_id' => $room->id,
-            'status'  => 'pending',
+            'status' => 'pending',
         ]);
     }
 
@@ -70,11 +70,11 @@ class PessimisticLockingBookingTransactionAuditTest extends TestCase
 
         try {
             $response = $this->actingAs($admin)->postJson('/api/v1/bookings', [
-                'room_id'           => $room->id,
-                'title'             => 'Booking Yang Harus Rollback',
+                'room_id' => $room->id,
+                'title' => 'Booking Yang Harus Rollback',
                 'participant_count' => 5,
-                'start_time'        => $startTime->toDateTimeString(),
-                'end_time'          => $endTime->toDateTimeString(),
+                'start_time' => $startTime->toDateTimeString(),
+                'end_time' => $endTime->toDateTimeString(),
             ]);
 
             $response->assertStatus(500);
@@ -99,21 +99,21 @@ class PessimisticLockingBookingTransactionAuditTest extends TestCase
 
         // User 1 berhasil booking
         $response1 = $this->actingAs($user1)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Booking Pertama User 1',
+            'room_id' => $room->id,
+            'title' => 'Booking Pertama User 1',
             'participant_count' => 4,
-            'start_time'        => $startTime->toDateTimeString(),
-            'end_time'          => $endTime->toDateTimeString(),
+            'start_time' => $startTime->toDateTimeString(),
+            'end_time' => $endTime->toDateTimeString(),
         ]);
         $response1->assertStatus(201);
 
         // User 2 mencoba booking slot yang sama -> ditolak 422
         $response2 = $this->actingAs($user2)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Booking Kedua Bentrok User 2',
+            'room_id' => $room->id,
+            'title' => 'Booking Kedua Bentrok User 2',
             'participant_count' => 4,
-            'start_time'        => $startTime->toDateTimeString(),
-            'end_time'          => $endTime->toDateTimeString(),
+            'start_time' => $startTime->toDateTimeString(),
+            'end_time' => $endTime->toDateTimeString(),
         ]);
 
         $response2->assertStatus(422)

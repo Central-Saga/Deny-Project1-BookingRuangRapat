@@ -12,12 +12,12 @@ class RoomFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'        => $this->faker->unique()->word . ' Meeting Room',
-            'capacity'    => $this->faker->numberBetween(5, 50),
-            'location'    => 'Lantai ' . $this->faker->randomDigitNotNull,
-            'facilities'  => ['Proyektor', 'Whiteboard'],
+            'name' => $this->faker->unique()->word.' Meeting Room',
+            'capacity' => $this->faker->numberBetween(5, 50),
+            'location' => 'Lantai '.$this->faker->randomDigitNotNull,
+            'facilities' => ['Proyektor', 'Whiteboard'],
             'description' => $this->faker->sentence(),
-            'is_active'   => true,
+            'is_active' => true,
         ];
     }
 }

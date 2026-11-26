@@ -146,14 +146,14 @@ class AuthAuthorizationAuditTest extends TestCase
             'current_password' => 'WrongOldPass123!',
             'password' => 'NewPassword123!',
         ])->assertStatus(422)
-          ->assertJsonPath('success', false);
+            ->assertJsonPath('success', false);
 
         // Password too short (< 8 chars)
         $this->withToken($token)->postJson('/api/v1/change-password', [
             'current_password' => 'ValidOldPass123!',
             'password' => 'short',
         ])->assertStatus(422)
-          ->assertJsonPath('success', false);
+            ->assertJsonPath('success', false);
 
         // Unauthenticated request (flush previous token header)
         $this->flushHeaders();

@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -184,7 +185,7 @@ class UniformErrorResponseSchemaAuditTest extends TestCase
         $employee = User::factory()->create(['role' => 'karyawan']);
         $room = Room::factory()->create(['capacity' => 10, 'is_active' => true]);
 
-        $start = \Illuminate\Support\Carbon::now('Asia/Makassar')
+        $start = Carbon::now('Asia/Makassar')
             ->nextWeekday()
             ->setTime(9, 0)
             ->setTimezone(config('app.timezone'));

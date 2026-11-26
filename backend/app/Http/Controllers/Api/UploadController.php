@@ -18,7 +18,7 @@ class UploadController extends Controller
             'status' => true,
             'message' => 'File berhasil diunggah.',
             'data' => [
-                'url' => asset('storage/' . $path),
+                'url' => asset('storage/'.$path),
                 'path' => $path,
                 'size' => $file->getSize(),
                 'mime_type' => $file->getMimeType(),

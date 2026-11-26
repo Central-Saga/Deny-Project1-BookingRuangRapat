@@ -11,7 +11,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
-class SendBookingNotification implements ShouldQueue, ShouldBeUnique
+class SendBookingNotification implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -47,6 +47,7 @@ class SendBookingNotification implements ShouldQueue, ShouldBeUnique
         // If job already executed, preserve idempotency (1 effect only)
         if (Cache::has($idempotencyKey)) {
             Log::info("Idempotent skip: SendBookingNotification for booking #{$this->bookingId} [{$this->action}] already executed.");
+
             return false;
         }
 

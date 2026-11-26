@@ -19,7 +19,7 @@ class FileContentValidationAuditTest extends TestCase
         $this->assertFileExists(base_path('app/Http/Requests/StoreBookingRequest.php'));
 
         $requestsPath = app_path('Http/Requests');
-        $files = glob($requestsPath . '/*.php');
+        $files = glob($requestsPath.'/*.php');
 
         $mimetypesOccurrences = 0;
         foreach ($files as $file) {

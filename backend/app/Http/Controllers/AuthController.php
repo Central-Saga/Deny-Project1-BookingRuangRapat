@@ -26,7 +26,7 @@ class AuthController extends Controller
 
         $authData = $this->authService->attemptLogin($credentials['email'], $credentials['password']);
 
-        if (!$authData) {
+        if (! $authData) {
             return response()->json([
                 'success' => false,
                 'status' => false,
@@ -53,8 +53,8 @@ class AuthController extends Controller
             ],
             'errors' => [],
         ])->cookie('meetspace_auth_token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Lax')
-          ->cookie('auth_token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Lax')
-          ->cookie('token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Lax');
+            ->cookie('auth_token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Lax')
+            ->cookie('token', $token, $cookieMinutes, '/', null, $secure, true, false, 'Lax');
     }
 
     public function me(Request $request): JsonResponse
@@ -75,8 +75,8 @@ class AuthController extends Controller
             'errors' => [],
             'success' => true,
         ])->withoutCookie('meetspace_auth_token', '/')
-          ->withoutCookie('auth_token', '/')
-          ->withoutCookie('token', '/');
+            ->withoutCookie('auth_token', '/')
+            ->withoutCookie('token', '/');
     }
 
     public function changePassword(Request $request): JsonResponse
@@ -114,7 +114,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!Hash::check($currentPassword, $user->password)) {
+        if (! Hash::check($currentPassword, $user->password)) {
             return response()->json([
                 'success' => false,
                 'status' => false,

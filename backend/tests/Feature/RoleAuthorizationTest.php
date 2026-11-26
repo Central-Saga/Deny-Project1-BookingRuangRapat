@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\PermissionServiceProvider;
 use Tests\TestCase;
 
 class RoleAuthorizationTest extends TestCase
@@ -14,7 +15,7 @@ class RoleAuthorizationTest extends TestCase
 
     public function test_only_users_role_column_is_used_for_authorization(): void
     {
-        $this->assertFalse(class_exists(\Spatie\Permission\PermissionServiceProvider::class));
+        $this->assertFalse(class_exists(PermissionServiceProvider::class));
         $this->assertFalse(Schema::hasTable('roles'));
         $this->assertFalse(Schema::hasTable('permissions'));
         $this->assertTrue(Schema::hasColumn('users', 'role'));

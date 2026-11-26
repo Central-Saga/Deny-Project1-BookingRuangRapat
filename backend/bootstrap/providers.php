@@ -1,11 +1,14 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use NunoMaduro\Collision\Adapters\Laravel\CollisionServiceProvider;
+
 $providers = [
-    App\Providers\AppServiceProvider::class,
+    AppServiceProvider::class,
 ];
 
-if (class_exists(\NunoMaduro\Collision\Adapters\Laravel\CollisionServiceProvider::class)) {
-    $providers[] = \NunoMaduro\Collision\Adapters\Laravel\CollisionServiceProvider::class;
+if (class_exists(CollisionServiceProvider::class)) {
+    $providers[] = CollisionServiceProvider::class;
 }
 
 return $providers;

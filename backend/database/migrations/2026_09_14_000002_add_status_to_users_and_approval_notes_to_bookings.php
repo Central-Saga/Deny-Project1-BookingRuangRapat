@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table): void {
-            if (!Schema::hasColumn('users', 'status')) {
+            if (! Schema::hasColumn('users', 'status')) {
                 $table->string('status')->default('active')->after('role');
             }
         });
 
         Schema::table('bookings', function (Blueprint $table): void {
-            if (!Schema::hasColumn('bookings', 'approval_notes')) {
+            if (! Schema::hasColumn('bookings', 'approval_notes')) {
                 $table->text('approval_notes')->nullable()->after('cancellation_reason');
             }
         });
@@ -24,11 +24,15 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table): void {
-            if (Schema::hasColumn('users', 'status')) $table->dropColumn('status');
+            if (Schema::hasColumn('users', 'status')) {
+                $table->dropColumn('status');
+            }
         });
 
         Schema::table('bookings', function (Blueprint $table): void {
-            if (Schema::hasColumn('bookings', 'approval_notes')) $table->dropColumn('approval_notes');
+            if (Schema::hasColumn('bookings', 'approval_notes')) {
+                $table->dropColumn('approval_notes');
+            }
         });
     }
 };

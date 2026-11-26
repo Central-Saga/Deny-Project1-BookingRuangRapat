@@ -4,13 +4,9 @@ import * as path from 'path';
 import {
     apiClient,
     clearApiCache,
-    clearToken,
-    createBooking,
     createRoom,
     getApiCache,
-    getBookings,
     getRooms,
-    login,
     saveToken,
     setApiCache,
 } from './index';

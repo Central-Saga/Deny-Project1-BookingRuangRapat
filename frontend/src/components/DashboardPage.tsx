@@ -182,6 +182,7 @@ export default function Dashboard() {
             }
         }
         void initializeAuth();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authRetry]);
 
     async function handleLogin(event: FormEvent) {

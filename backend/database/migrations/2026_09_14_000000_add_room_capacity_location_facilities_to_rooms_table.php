@@ -13,15 +13,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rooms', function (Blueprint $table): void {
-            if (!Schema::hasColumn('rooms', 'capacity')) {
+            if (! Schema::hasColumn('rooms', 'capacity')) {
                 $table->integer('capacity')->default(1);
             }
 
-            if (!Schema::hasColumn('rooms', 'location')) {
+            if (! Schema::hasColumn('rooms', 'location')) {
                 $table->string('location')->default('Belum ditentukan');
             }
 
-            if (!Schema::hasColumn('rooms', 'facilities')) {
+            if (! Schema::hasColumn('rooms', 'facilities')) {
                 $table->json('facilities')->nullable();
             }
         });

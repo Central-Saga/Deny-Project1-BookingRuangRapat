@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Mencegah lazy loading saat bukan di environment production
-        Model::preventLazyLoading(!app()->isProduction());
+        Model::preventLazyLoading(! app()->isProduction());
 
         // Audit 496 Parameter 29: RateLimiter untuk endpoint pemesanan rapat (30 request per menit)
         RateLimiter::for('bookings', function (Request $request) {

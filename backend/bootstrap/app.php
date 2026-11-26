@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Middleware\CookieBearerTokenMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -17,9 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
-        $middleware->prependToGroup('api', \App\Http\Middleware\CookieBearerTokenMiddleware::class);
-        $middleware->prependToGroup('web', \App\Http\Middleware\CookieBearerTokenMiddleware::class);
+        $middleware->append(SecurityHeadersMiddleware::class);
+        $middleware->prependToGroup('api', CookieBearerTokenMiddleware::class);
+        $middleware->prependToGroup('web', CookieBearerTokenMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /**
@@ -47,7 +50,9 @@ return Application::configure(basePath: dirname(__DIR__))
         };
 
         $exceptions->render(function (ValidationException $exception, Request $request) use ($fail, $isApi) {
-            if (!$isApi($request)) return null;
+            if (! $isApi($request)) {
+                return null;
+            }
 
             $errors = collect($exception->errors())
                 ->flatMap(fn (array $messages, string $field): array => array_map(
@@ -64,25 +69,33 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (AuthorizationException $exception, Request $request) use ($fail, $isApi) {
-            if (!$isApi($request)) return null;
+            if (! $isApi($request)) {
+                return null;
+            }
 
             return $fail($exception->getMessage() ?: 'Akses ditolak.', 403);
         });
 
         $exceptions->render(function (AuthenticationException $exception, Request $request) use ($fail, $isApi) {
-            if (!$isApi($request)) return null;
+            if (! $isApi($request)) {
+                return null;
+            }
 
             return $fail('Autentikasi diperlukan.', 401);
         });
 
-        $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $exception, Request $request) use ($fail, $isApi) {
-            if (!$isApi($request)) return null;
+        $exceptions->render(function (ModelNotFoundException $exception, Request $request) use ($fail, $isApi) {
+            if (! $isApi($request)) {
+                return null;
+            }
 
             return $fail('Data tidak ditemukan.', 404);
         });
 
         $exceptions->render(function (HttpExceptionInterface $exception, Request $request) use ($fail, $isApi) {
-            if (!$isApi($request)) return null;
+            if (! $isApi($request)) {
+                return null;
+            }
 
             $status = $exception->getStatusCode();
 
@@ -91,8 +104,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 $payload = array_merge($request->query->all(), $request->request->all(), (array) $request->json()->all());
                 foreach ($payload as $key => $val) {
                     if (is_numeric($val) && (float) $val < 0) {
-                        return $fail('Nilai ' . $key . ' tidak boleh bernilai negatif.', 422, [
-                            $key => ['Nilai ' . $key . ' tidak boleh bernilai negatif.']
+                        return $fail('Nilai '.$key.' tidak boleh bernilai negatif.', 422, [
+                            $key => ['Nilai '.$key.' tidak boleh bernilai negatif.'],
                         ]);
                     }
                 }
@@ -101,7 +114,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $message = match ($status) {
                 401 => 'Autentikasi diperlukan.',
                 403 => $exception->getMessage() ?: 'Akses ditolak.',
-                404 => ($exception->getPrevious() instanceof \Illuminate\Database\Eloquent\ModelNotFoundException || str_contains($exception->getMessage(), 'No query results for model'))
+                404 => ($exception->getPrevious() instanceof ModelNotFoundException || str_contains($exception->getMessage(), 'No query results for model'))
                     ? 'Data tidak ditemukan.'
                     : 'Endpoint tidak ditemukan.',
                 405 => 'Metode HTTP tidak diizinkan.',
@@ -109,7 +122,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 default => $exception->getMessage() ?: 'Permintaan tidak dapat diproses.',
             };
 
-            if ($status >= 500 && !config('app.debug')) {
+            if ($status >= 500 && ! config('app.debug')) {
                 $message = 'Terjadi kesalahan pada server.';
             }
 
@@ -117,7 +130,9 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) use ($fail, $isApi) {
-            if (!$isApi($request)) return null;
+            if (! $isApi($request)) {
+                return null;
+            }
 
             $message = config('app.debug')
                 ? $exception->getMessage()

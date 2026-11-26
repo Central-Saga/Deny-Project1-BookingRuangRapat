@@ -61,11 +61,11 @@ class Psr4StoreRoomRequestAuditTest extends TestCase
 
         // Valid payload
         $validPayload = [
-            'name'        => 'Ruang Sirius',
-            'capacity'    => 12,
-            'location'    => 'Lantai 3 Gedung A',
+            'name' => 'Ruang Sirius',
+            'capacity' => 12,
+            'location' => 'Lantai 3 Gedung A',
             'description' => 'Ruang rapat berkapasitas sedang.',
-            'is_active'   => true,
+            'is_active' => true,
         ];
 
         $createResponse = $this->actingAs($admin)->postJson('/api/v1/rooms', $validPayload);
@@ -74,7 +74,7 @@ class Psr4StoreRoomRequestAuditTest extends TestCase
             ->assertJsonPath('data.capacity', 12);
 
         $this->assertDatabaseHas('rooms', [
-            'name'     => 'Ruang Sirius',
+            'name' => 'Ruang Sirius',
             'capacity' => 12,
         ]);
     }

@@ -44,7 +44,7 @@ class CancelBookingRequestAuditTest extends TestCase
         $booking = Booking::factory()->create([
             'user_id' => $user->id,
             'room_id' => $room->id,
-            'status'  => 'pending',
+            'status' => 'pending',
         ]);
 
         $response = $this->actingAs($user)->patchJson("/api/v1/bookings/{$booking->id}/cancel", []);
@@ -68,7 +68,7 @@ class CancelBookingRequestAuditTest extends TestCase
         $booking = Booking::factory()->create([
             'user_id' => $user->id,
             'room_id' => $room->id,
-            'status'  => 'pending',
+            'status' => 'pending',
         ]);
 
         // 7 characters (under 10)
@@ -95,7 +95,7 @@ class CancelBookingRequestAuditTest extends TestCase
         $booking = Booking::factory()->create([
             'user_id' => $user->id,
             'room_id' => $room->id,
-            'status'  => 'pending',
+            'status' => 'pending',
         ]);
 
         $reason = 'Jadwal rapat diundur ke minggu depan oleh direksi.';
@@ -113,8 +113,8 @@ class CancelBookingRequestAuditTest extends TestCase
         $this->assertSame($reason, $booking->cancellation_reason);
 
         $this->assertDatabaseHas('bookings', [
-            'id'                  => $booking->id,
-            'status'              => 'cancelled',
+            'id' => $booking->id,
+            'status' => 'cancelled',
             'cancellation_reason' => $reason,
         ]);
     }

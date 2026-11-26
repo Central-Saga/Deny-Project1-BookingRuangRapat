@@ -29,7 +29,7 @@ class RoomCapacityExceededRejectionTest extends TestCase
 
         return [
             'start' => $start,
-            'end'   => $end,
+            'end' => $end,
         ];
     }
 
@@ -41,20 +41,20 @@ class RoomCapacityExceededRejectionTest extends TestCase
     {
         $employee = User::factory()->create(['role' => 'karyawan']);
         $room = Room::factory()->create([
-            'name'      => 'Ruang Rapat Kecil (Meeting Room A)',
-            'capacity'  => 5,
+            'name' => 'Ruang Rapat Kecil (Meeting Room A)',
+            'capacity' => 5,
             'is_active' => true,
         ]);
 
         $slot = $this->getNextWorkingSlot(10, 2);
 
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Divisi Skala Besar',
+            'room_id' => $room->id,
+            'title' => 'Rapat Divisi Skala Besar',
             'participant_count' => 12, // 12 peserta melebihi kapasitas 5
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
-            'notes'             => 'Agenda pembahasan strategi tahunan dengan 12 peserta.',
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
+            'notes' => 'Agenda pembahasan strategi tahunan dengan 12 peserta.',
         ];
 
         $response = $this->actingAs($employee)
@@ -76,7 +76,7 @@ class RoomCapacityExceededRejectionTest extends TestCase
         // Verifikasi database tidak menyimpan booking yang melanggar kapasitas
         $this->assertDatabaseCount('bookings', 0);
         $this->assertDatabaseMissing('bookings', [
-            'room_id'           => $room->id,
+            'room_id' => $room->id,
             'participant_count' => 12,
         ]);
     }
@@ -89,8 +89,8 @@ class RoomCapacityExceededRejectionTest extends TestCase
     {
         $employee = User::factory()->create(['role' => 'karyawan']);
         $room = Room::factory()->create([
-            'name'      => 'Ruang Diskusi 5 Orang',
-            'capacity'  => 5,
+            'name' => 'Ruang Diskusi 5 Orang',
+            'capacity' => 5,
             'is_active' => true,
         ]);
 
@@ -98,23 +98,23 @@ class RoomCapacityExceededRejectionTest extends TestCase
 
         // Booking awal valid dengan 4 peserta
         $booking = Booking::factory()->create([
-            'user_id'           => $employee->id,
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Awal 4 Orang',
+            'user_id' => $employee->id,
+            'room_id' => $room->id,
+            'title' => 'Rapat Awal 4 Orang',
             'participant_count' => 4,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
-            'status'            => 'pending',
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
+            'status' => 'pending',
         ]);
 
         // Percobaan update menjadi 12 peserta pada ruangan kapasitas 5
         $response = $this->actingAs($employee)
             ->putJson("/api/v1/bookings/{$booking->id}", [
-                'room_id'           => $room->id,
-                'title'             => 'Pembaruan Menjadi 12 Orang',
+                'room_id' => $room->id,
+                'title' => 'Pembaruan Menjadi 12 Orang',
                 'participant_count' => 12,
-                'start_time'        => $slot['start']->toDateTimeString(),
-                'end_time'          => $slot['end']->toDateTimeString(),
+                'start_time' => $slot['start']->toDateTimeString(),
+                'end_time' => $slot['end']->toDateTimeString(),
             ]);
 
         $response->assertStatus(422)
@@ -136,7 +136,7 @@ class RoomCapacityExceededRejectionTest extends TestCase
     {
         $employee = User::factory()->create(['role' => 'karyawan']);
         $room = Room::factory()->create([
-            'capacity'  => 5,
+            'capacity' => 5,
             'is_active' => true,
         ]);
 
@@ -146,33 +146,33 @@ class RoomCapacityExceededRejectionTest extends TestCase
 
         // 1. Tepat 5 peserta -> Berhasil (201)
         $response5 = $this->actingAs($employee)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Pas 5 Orang',
+            'room_id' => $room->id,
+            'title' => 'Rapat Pas 5 Orang',
             'participant_count' => 5,
-            'start_time'        => $slotA['start']->toDateTimeString(),
-            'end_time'          => $slotA['end']->toDateTimeString(),
+            'start_time' => $slotA['start']->toDateTimeString(),
+            'end_time' => $slotA['end']->toDateTimeString(),
         ]);
         $response5->assertStatus(201)
             ->assertJsonPath('data.participant_count', 5);
 
         // 2. 6 peserta (melebihi 1 orang) -> Ditolak (422)
         $response6 = $this->actingAs($employee)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat 6 Orang (Kelebihan 1)',
+            'room_id' => $room->id,
+            'title' => 'Rapat 6 Orang (Kelebihan 1)',
             'participant_count' => 6,
-            'start_time'        => $slotB['start']->toDateTimeString(),
-            'end_time'          => $slotB['end']->toDateTimeString(),
+            'start_time' => $slotB['start']->toDateTimeString(),
+            'end_time' => $slotB['end']->toDateTimeString(),
         ]);
         $response6->assertStatus(422)
             ->assertJsonPath('status', false);
 
         // 3. 12 peserta -> Ditolak (422)
         $response12 = $this->actingAs($employee)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat 12 Orang',
+            'room_id' => $room->id,
+            'title' => 'Rapat 12 Orang',
             'participant_count' => 12,
-            'start_time'        => $slotC['start']->toDateTimeString(),
-            'end_time'          => $slotC['end']->toDateTimeString(),
+            'start_time' => $slotC['start']->toDateTimeString(),
+            'end_time' => $slotC['end']->toDateTimeString(),
         ]);
         $response12->assertStatus(422)
             ->assertJsonPath('status', false);

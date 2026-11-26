@@ -18,7 +18,7 @@ class CorsWhitelistAuditTest extends TestCase
         $this->assertIsArray($allowedOrigins);
         $this->assertNotContains('*', $allowedOrigins, 'CORS allowed_origins must not contain wildcard asterisk *');
 
-        if (!empty($allowedPatterns)) {
+        if (! empty($allowedPatterns)) {
             $this->assertNotContains('.*', $allowedPatterns);
             $this->assertNotContains('*', $allowedPatterns);
         }

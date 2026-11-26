@@ -51,7 +51,7 @@ class RouteClosureAuditTest extends TestCase
         $foundMatches = [];
 
         foreach ($routeFiles as $filePath) {
-            if (!file_exists($filePath)) {
+            if (! file_exists($filePath)) {
                 continue;
             }
 
@@ -69,7 +69,7 @@ class RouteClosureAuditTest extends TestCase
         $this->assertCount(
             0,
             $foundMatches,
-            'Ditemukan closure pada definisi route: ' . json_encode($foundMatches)
+            'Ditemukan closure pada definisi route: '.json_encode($foundMatches)
         );
     }
 

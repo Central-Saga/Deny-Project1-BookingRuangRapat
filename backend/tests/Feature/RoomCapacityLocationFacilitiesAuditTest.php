@@ -39,17 +39,17 @@ class RoomCapacityLocationFacilitiesAuditTest extends TestCase
         $facilities = ['Proyektor 4K', 'Whiteboard', 'Sound System', 'Video Conference'];
 
         $room = Room::create([
-            'name'        => 'Ruang Eksklusif Batur',
-            'capacity'    => 20,
-            'location'    => 'Gedung Rektorat Lt. 2',
-            'facilities'  => $facilities,
+            'name' => 'Ruang Eksklusif Batur',
+            'capacity' => 20,
+            'location' => 'Gedung Rektorat Lt. 2',
+            'facilities' => $facilities,
             'description' => 'Ruang rapat berstandar eksekutif.',
-            'is_active'   => true,
+            'is_active' => true,
         ]);
 
         $this->assertDatabaseHas('rooms', [
-            'id'       => $room->id,
-            'name'     => 'Ruang Eksklusif Batur',
+            'id' => $room->id,
+            'name' => 'Ruang Eksklusif Batur',
             'capacity' => 20,
             'location' => 'Gedung Rektorat Lt. 2',
         ]);
@@ -67,12 +67,12 @@ class RoomCapacityLocationFacilitiesAuditTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
 
         $payload = [
-            'name'        => 'Ruang Rapat Agung',
-            'capacity'    => 15,
-            'location'    => 'Sayap Barat Lt. 1',
-            'facilities'  => ['Smart TV', 'AC', 'WiFi 6'],
+            'name' => 'Ruang Rapat Agung',
+            'capacity' => 15,
+            'location' => 'Sayap Barat Lt. 1',
+            'facilities' => ['Smart TV', 'AC', 'WiFi 6'],
             'description' => 'Ruang serbaguna tim pengembang.',
-            'is_active'   => true,
+            'is_active' => true,
         ];
 
         // Create room via API
@@ -87,7 +87,7 @@ class RoomCapacityLocationFacilitiesAuditTest extends TestCase
         $indexResponse = $this->actingAs($admin)->getJson('/api/v1/rooms');
         $indexResponse->assertOk()
             ->assertJsonFragment([
-                'name'     => 'Ruang Rapat Agung',
+                'name' => 'Ruang Rapat Agung',
                 'capacity' => 15,
                 'location' => 'Sayap Barat Lt. 1',
             ]);

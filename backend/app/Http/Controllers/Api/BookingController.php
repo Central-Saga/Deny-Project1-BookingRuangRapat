@@ -26,12 +26,14 @@ class BookingController extends Controller
             $request->filled('room_id') ? $request->integer('room_id') : null,
             (int) ($p['per_page'] ?? 25)
         );
+
         return BookingResource::collection($bookings)->additional(['success' => true, 'status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
     }
 
     public function store(StoreBookingRequest $request)
     {
         $booking = $this->bookingService->createBooking($request->user(), $request->validated());
+
         return (new BookingResource($booking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
@@ -39,12 +41,14 @@ class BookingController extends Controller
     {
         $p = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
         $bookings = $this->bookingService->getAvailability((int) ($p['per_page'] ?? 25));
+
         return BookingResource::collection($bookings)->additional(['success' => true, 'status' => true, 'message' => 'Data ketersediaan berhasil dimuat.', 'errors' => []]);
     }
 
     public function show(Booking $booking)
     {
         Gate::authorize('view', $booking);
+
         return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
     }
 
@@ -61,6 +65,7 @@ class BookingController extends Controller
     {
         Gate::authorize('update', $booking);
         $updatedBooking = $this->bookingService->updateBooking($booking, $request->validated());
+
         return (new BookingResource($updatedBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
@@ -68,6 +73,7 @@ class BookingController extends Controller
     {
         Gate::authorize('approve', $booking);
         $approvedBooking = $this->bookingService->approveBooking($booking, (int) auth()->id());
+
         return (new BookingResource($approvedBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
@@ -75,6 +81,7 @@ class BookingController extends Controller
     {
         Gate::authorize('reject', $booking);
         $rejectedBooking = $this->bookingService->rejectBooking($booking, (int) auth()->id(), $request->validated()['approval_notes']);
+
         return (new BookingResource($rejectedBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
@@ -82,6 +89,7 @@ class BookingController extends Controller
     {
         Gate::authorize('cancel', $booking);
         $cancelledBooking = $this->bookingService->cancelBooking($booking, $request->validated()['cancellation_reason']);
+
         return (new BookingResource($cancelledBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
@@ -89,6 +97,7 @@ class BookingController extends Controller
     {
         Gate::authorize('delete', $booking);
         $this->bookingService->deleteBooking($booking);
+
         return response()->noContent();
     }
 }

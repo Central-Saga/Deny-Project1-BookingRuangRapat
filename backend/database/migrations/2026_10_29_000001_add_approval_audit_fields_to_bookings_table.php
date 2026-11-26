@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bookings', function (Blueprint $table): void {
-            if (!Schema::hasColumn('bookings', 'approved_by')) {
+            if (! Schema::hasColumn('bookings', 'approved_by')) {
                 $table->foreignId('approved_by')
                     ->nullable()
                     ->after('approval_notes')
@@ -17,7 +17,7 @@ return new class extends Migration
                     ->nullOnDelete();
             }
 
-            if (!Schema::hasColumn('bookings', 'decided_at')) {
+            if (! Schema::hasColumn('bookings', 'decided_at')) {
                 $table->timestamp('decided_at')
                     ->nullable()
                     ->after('approved_by');
@@ -38,4 +38,3 @@ return new class extends Migration
         });
     }
 };
-

@@ -10,10 +10,7 @@ use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class QueueJobAuditTest extends TestCase
@@ -44,7 +41,7 @@ class QueueJobAuditTest extends TestCase
 
     public function test_cancel_expired_bookings_job_is_unique_and_idempotent(): void
     {
-        $job = new CancelExpiredBookingsJob();
+        $job = new CancelExpiredBookingsJob;
 
         $this->assertInstanceOf(ShouldQueue::class, $job);
         $this->assertInstanceOf(ShouldBeUnique::class, $job);

@@ -4,7 +4,6 @@
  * Audit 496 Parameter 28: Whitelist CORS Origin pada config/cors.php.
  * Pastikan config/cors.php hanya mengizinkan origin frontend yang sah dan tidak menggunakan wildcard *.
  */
-
 $defaultOrigins = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',

@@ -19,8 +19,11 @@ class IdorAndRoleAuthorizationMatrixAuditTest extends TestCase
     use RefreshDatabase;
 
     private Room $room;
+
     private User $karyawanA;
+
     private User $karyawanB;
+
     private User $admin;
 
     protected function setUp(): void

@@ -41,7 +41,7 @@ class RouteVersioningPrefixAuditTest extends TestCase
         // Pastikan tidak ada rute booking/room tanpa prefix v1
         $this->assertEmpty(
             $unversionedBookingRoutes,
-            'Seluruh rute booking dan rooms harus diawali prefix v1. Ditemukan tanpa prefix: ' . implode(', ', $unversionedBookingRoutes)
+            'Seluruh rute booking dan rooms harus diawali prefix v1. Ditemukan tanpa prefix: '.implode(', ', $unversionedBookingRoutes)
         );
     }
 

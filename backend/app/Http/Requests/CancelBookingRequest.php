@@ -26,8 +26,8 @@ class CancelBookingRequest extends FormRequest
     {
         return [
             'cancellation_reason.required' => 'Alasan pembatalan wajib diisi.',
-            'cancellation_reason.min'      => 'Alasan pembatalan minimal 10 karakter.',
-            'cancellation_reason.max'      => 'Alasan pembatalan maksimal 500 karakter.',
+            'cancellation_reason.min' => 'Alasan pembatalan minimal 10 karakter.',
+            'cancellation_reason.max' => 'Alasan pembatalan maksimal 500 karakter.',
         ];
     }
 }
