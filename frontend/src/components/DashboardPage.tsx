@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { ApiError, cancelBooking, clearToken, createBooking, deleteBooking, getAvailability, getBookings, getCurrentUser, getRooms, getToken, hasToken, login, logout, saveToken, updateBooking } from '@/api';
 import { Booking, Room, User } from '@/types';
 import { bookingSchema } from '@/lib/validations/bookingSchema';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const BookingCalendar = dynamic(() => import('@/components/BookingCalendar'), {
     ssr: false,
@@ -45,8 +46,17 @@ function Icon({ name, className = 'h-5 w-5' }: { name: 'calendar' | 'clock' | 'd
     return <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
 
-function FieldError({ message }: { message?: string }) {
-    return message ? <p className="mt-1.5 text-xs font-medium text-amber-300">{message}</p> : null;
+function FieldError({ message, id, field }: { message?: string; id?: string; field?: string }) {
+    return message ? (
+        <p
+            id={id}
+            role="alert"
+            data-testid={field ? `error-${field}` : undefined}
+            className="mt-1.5 text-xs font-medium text-rose-400"
+        >
+            {message}
+        </p>
+    ) : null;
 }
 
 export default function Dashboard() {
@@ -56,6 +66,7 @@ export default function Dashboard() {
     const [authRetry, setAuthRetry] = useState(0);
     const [loginData, setLoginData] = useState({ email: '', password: '' });
     const [loginError, setLoginError] = useState<string | null>(null);
+    const [loginFieldErrors, setLoginFieldErrors] = useState<Record<string, string>>({});
     const [loggingIn, setLoggingIn] = useState(false);
     const [rooms, setRooms] = useState<Room[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -200,6 +211,7 @@ export default function Dashboard() {
     async function handleLogin(event: FormEvent) {
         event.preventDefault();
         setLoginError(null);
+        setLoginFieldErrors({});
         setLoggingIn(true);
         try {
             const result = await login(loginData.email, loginData.password);
@@ -210,7 +222,12 @@ export default function Dashboard() {
             else if (pathname === '/admin' || pathname === '/') router.replace('/dashboard');
             await loadData();
         } catch (loginFailure: unknown) {
-            setLoginError(errorMessage(loginFailure, 'Email atau password belum sesuai.'));
+            if (loginFailure instanceof ApiError && Object.keys(loginFailure.fieldErrors).length > 0) {
+                setLoginFieldErrors(loginFailure.fieldErrors);
+                setLoginError(loginFailure.message || 'Data login tidak valid.');
+            } else {
+                setLoginError(errorMessage(loginFailure, 'Email atau password belum sesuai.'));
+            }
         } finally {
             setLoggingIn(false);
         }
@@ -250,11 +267,22 @@ export default function Dashboard() {
             setFormData({ room_id: '', title: '', participant_count: '1', date: '', start_time: '', end_time: '', notes: '' });
             await loadData();
         } catch (submitError: unknown) {
-            const message = errorMessage(submitError, 'Gagal membuat pemesanan');
-            if (message.toLowerCase().includes('sudah dibooking') || message.toLowerCase().includes('bentrok')) {
-                setConflictError(message);
+            if (submitError instanceof ApiError) {
+                const message = submitError.message;
+                if (submitError.status === 409 || message.toLowerCase().includes('sudah dibooking') || message.toLowerCase().includes('bentrok')) {
+                    setConflictError(message);
+                } else if (Object.keys(submitError.fieldErrors).length > 0) {
+                    setFormErrors(submitError.fieldErrors);
+                } else {
+                    setFormErrors({ form: message });
+                }
             } else {
-                setFormErrors({ form: message });
+                const message = errorMessage(submitError, 'Gagal membuat pemesanan');
+                if (message.toLowerCase().includes('sudah dibooking') || message.toLowerCase().includes('bentrok')) {
+                    setConflictError(message);
+                } else {
+                    setFormErrors({ form: message });
+                }
             }
         } finally {
             setSubmitting(false);
@@ -329,7 +357,11 @@ export default function Dashboard() {
             setCancelTarget(null);
             await loadData();
         } catch (cancelError: unknown) {
-            setActionError(errorMessage(cancelError, 'Gagal membatalkan pemesanan'));
+            if (cancelError instanceof ApiError && (cancelError.fieldErrors.cancellation_reason || cancelError.fieldErrors.reason)) {
+                setActionError(cancelError.fieldErrors.cancellation_reason || cancelError.fieldErrors.reason);
+            } else {
+                setActionError(errorMessage(cancelError, 'Gagal membatalkan pemesanan'));
+            }
         } finally {
             setCancelling(false);
         }
@@ -381,16 +413,66 @@ export default function Dashboard() {
                         <p className="mt-2 text-sm leading-6 text-emerald-100/70">Masuk untuk mengatur jadwal dan ruang rapat Anda.</p>
                     </div>
                     {loginError && <div role="alert" className="mb-5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{loginError}</div>}
-                    <form onSubmit={handleLogin} className="space-y-5">
+                    <form onSubmit={handleLogin} className="space-y-5" aria-busy={loggingIn} noValidate>
                         <div>
                             <label htmlFor="email" className="mb-2 block text-sm font-semibold text-emerald-100">Email</label>
-                            <input id="email" type="email" required autoComplete="email" value={loginData.email} onChange={(event) => setLoginData({ ...loginData, email: event.target.value })} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f57c00] focus:ring-4 focus:ring-[#f57c00]/20" placeholder="nama@perusahaan.com" />
+                            <input
+                                id="email"
+                                type="email"
+                                required
+                                autoComplete="email"
+                                disabled={loggingIn}
+                                aria-invalid={Boolean(loginFieldErrors.email)}
+                                aria-describedby={loginFieldErrors.email ? 'email-error' : undefined}
+                                value={loginData.email}
+                                onChange={(event) => {
+                                    setLoginData({ ...loginData, email: event.target.value });
+                                    if (loginFieldErrors.email) setLoginFieldErrors((prev) => ({ ...prev, email: '' }));
+                                }}
+                                className={`w-full rounded-xl border ${loginFieldErrors.email ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f57c00] focus:ring-4 focus:ring-[#f57c00]/20 disabled:opacity-60`}
+                                placeholder="nama@perusahaan.com"
+                            />
+                            {loginFieldErrors.email && <p id="email-error" role="alert" data-testid="error-email" className="mt-1.5 text-xs font-medium text-rose-400">{loginFieldErrors.email}</p>}
                         </div>
                         <div>
                             <label htmlFor="password" className="mb-2 block text-sm font-semibold text-emerald-100">Password</label>
-                            <input id="password" type="password" required autoComplete="current-password" value={loginData.password} onChange={(event) => setLoginData({ ...loginData, password: event.target.value })} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f57c00] focus:ring-4 focus:ring-[#f57c00]/20" placeholder="Masukkan password Anda" />
+                            <input
+                                id="password"
+                                type="password"
+                                required
+                                autoComplete="current-password"
+                                disabled={loggingIn}
+                                aria-invalid={Boolean(loginFieldErrors.password)}
+                                aria-describedby={loginFieldErrors.password ? 'password-error' : undefined}
+                                value={loginData.password}
+                                onChange={(event) => {
+                                    setLoginData({ ...loginData, password: event.target.value });
+                                    if (loginFieldErrors.password) setLoginFieldErrors((prev) => ({ ...prev, password: '' }));
+                                }}
+                                className={`w-full rounded-xl border ${loginFieldErrors.password ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f57c00] focus:ring-4 focus:ring-[#f57c00]/20 disabled:opacity-60`}
+                                placeholder="Masukkan password Anda"
+                            />
+                            {loginFieldErrors.password && <p id="password-error" role="alert" data-testid="error-password" className="mt-1.5 text-xs font-medium text-rose-400">{loginFieldErrors.password}</p>}
                         </div>
-                        <button type="submit" disabled={loggingIn} className="w-full rounded-xl bg-[#f57c00] px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:opacity-60">{loggingIn ? 'Memverifikasi...' : 'Masuk'}</button>
+                        <button
+                            type="submit"
+                            disabled={loggingIn}
+                            aria-busy={loggingIn}
+                            data-loading={loggingIn}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#f57c00] px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {loggingIn ? (
+                                <>
+                                    <svg className="h-4 w-4 animate-spin text-slate-950" viewBox="0 0 24 24" fill="none">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                    </svg>
+                                    <span>Memverifikasi...</span>
+                                </>
+                            ) : (
+                                'Masuk'
+                            )}
+                        </button>
                     </form>
                     <p className="mt-7 text-center text-xs leading-5 text-emerald-200/50">Gunakan akun yang telah didaftarkan oleh perusahaan.</p>
                 </div>
@@ -446,11 +528,24 @@ export default function Dashboard() {
                         <h2 id="cancel-title" className="text-lg font-bold text-white">Batalkan booking?</h2>
                         <p className="mt-2 text-sm leading-6 text-emerald-100/70">Jadwal <span className="font-semibold text-white">{cancelTarget.title}</span> akan ditandai sebagai dibatalkan.</p>
                         <label htmlFor="cancellation-reason" className="mt-4 block text-sm font-semibold text-emerald-100">Alasan pembatalan</label>
-                        <textarea id="cancellation-reason" minLength={10} value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} className="mt-2 w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-[#f57c00]" placeholder="Jelaskan alasan pembatalan (minimal 10 karakter)" />
-                        {actionError && <p role="alert" className="mt-4 rounded-lg bg-rose-500/20 px-3 py-2 text-xs font-medium text-rose-300">{actionError}</p>}
+                        <textarea
+                            id="cancellation-reason"
+                            minLength={10}
+                            disabled={cancelling}
+                            aria-invalid={Boolean(actionError)}
+                            aria-describedby={actionError ? 'cancellation-reason-error' : undefined}
+                            value={cancellationReason}
+                            onChange={(event) => {
+                                setCancellationReason(event.target.value);
+                                if (actionError) setActionError(null);
+                            }}
+                            className={`mt-2 w-full rounded-xl border ${actionError ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-[#f57c00] disabled:opacity-50`}
+                            placeholder="Jelaskan alasan pembatalan (minimal 10 karakter)"
+                        />
+                        {actionError && <p id="cancellation-reason-error" role="alert" data-testid="error-cancellation-reason" className="mt-2 text-xs font-medium text-rose-300">{actionError}</p>}
                         <div className="mt-6 flex justify-end gap-3">
                             <button type="button" disabled={cancelling} onClick={() => { setCancelTarget(null); setActionError(null); }} className="rounded-xl border border-emerald-800 px-4 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-900/50 disabled:opacity-50">Kembali</button>
-                            <button type="button" disabled={cancelling || cancellationReason.trim().length < 10} onClick={confirmCancel} className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50">{cancelling ? 'Membatalkan...' : 'Batalkan booking'}</button>
+                            <button type="button" disabled={cancelling || cancellationReason.trim().length < 10} aria-busy={cancelling} onClick={confirmCancel} className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50">{cancelling ? 'Membatalkan...' : 'Batalkan booking'}</button>
                         </div>
                     </div>
                 </div>
@@ -577,7 +672,11 @@ export default function Dashboard() {
                     <div className="overflow-x-auto"><div className="min-w-[720px]"><div className="mb-2 ml-28 flex justify-between text-[10px] font-semibold text-emerald-100/60"><span>08.00</span><span>10.00</span><span>12.00</span><span>14.00</span><span>16.00</span><span>17.00</span></div><div className="space-y-3">{(availabilityRoomId === 'all' ? activeRooms : activeRooms.filter((room) => String(room.id) === availabilityRoomId)).map((room) => { const roomBookings = availabilityForDay.filter((booking) => booking.room_id === room.id); return <div key={room.id} className="flex items-center gap-3"><div className="w-25 shrink-0 truncate text-xs font-semibold text-white">{room.name}</div><div className="relative h-12 flex-1 rounded-lg border border-dashed border-emerald-700 bg-emerald-950/30"><div className="absolute inset-0 grid grid-cols-5 divide-x divide-emerald-800/60" />{roomBookings.length === 0 && <span className="absolute left-3 top-3 text-[10px] text-emerald-100/40">Belum terisi</span>}{roomBookings.map((booking) => { const start = Math.max(OPERATING_START_MINUTES, jakartaMinutes(booking.start_time)); const end = Math.min(OPERATING_END_MINUTES, jakartaMinutes(booking.end_time)); const left = ((start - OPERATING_START_MINUTES) / (OPERATING_END_MINUTES - OPERATING_START_MINUTES)) * 100; const width = Math.max(((end - start) / (OPERATING_END_MINUTES - OPERATING_START_MINUTES)) * 100, 2); return <div key={booking.id} title={`${booking.title} · ${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}`} className="absolute top-1.5 h-9 overflow-hidden rounded-md bg-[#f57c00] px-2 py-1 text-[10px] font-bold text-slate-950 shadow-sm" style={{ left: `${left}%`, width: `${width}%` }}><span className="block truncate">{booking.title}</span><span className="block text-[9px] font-medium">{formatTime(booking.start_time)}–{formatTime(booking.end_time)}</span></div>; })}</div></div>; })}</div></div></div>
                 </section>}
 
-                {showSchedule && <BookingCalendar bookings={availabilityBookings} loading={loading} onSelectDate={handleCalendarDateSelect} onSelectBooking={startEditing} />}
+                {showSchedule && (
+                    <ErrorBoundary title="Gagal Memuat Kalender Jadwal" description="Terjadi kendala saat merender komponen kalender. Silakan coba muat ulang bagian kalender.">
+                        <BookingCalendar bookings={availabilityBookings} loading={loading} onSelectDate={handleCalendarDateSelect} onSelectBooking={startEditing} />
+                    </ErrorBoundary>
+                )}
 
                 {showHistory && <div className="mt-8 grid grid-cols-1 gap-8">
                     <section id="booking-form" className="hidden rounded-2xl border border-emerald-900 bg-emerald-950/30 p-6 shadow-sm backdrop-blur sm:p-8">
@@ -586,47 +685,135 @@ export default function Dashboard() {
                             <div className="flex items-start justify-between gap-3"><div><h2 className="text-2xl font-bold text-white">{editingBooking ? 'Perbarui booking' : 'Pesan ruang rapat'}</h2><p className="mt-1 text-sm text-emerald-100/70">{editingBooking ? 'Sesuaikan detail agenda yang sudah dibuat.' : 'Isi detail agenda yang ingin Anda adakan.'}</p></div>{editingBooking && <button type="button" onClick={cancelEditing} className="rounded-lg border border-emerald-800 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-900/50">Batal edit</button>}</div>
                         </div>
                         {formErrors.form && <div role="alert" className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{formErrors.form}</div>}
-                        <form onSubmit={handleSubmit} className="space-y-5">
+                        <form onSubmit={handleSubmit} className="space-y-5" aria-busy={submitting} noValidate>
                             <div>
                                 <label htmlFor="room" className="mb-2 block text-sm font-semibold text-emerald-100">Pilih ruangan</label>
-                                <select id="room" value={formData.room_id} onChange={(event) => setFormData({ ...formData, room_id: event.target.value })} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20">
+                                <select
+                                    id="room"
+                                    value={formData.room_id}
+                                    disabled={submitting}
+                                    aria-invalid={Boolean(formErrors.room_id)}
+                                    aria-describedby={formErrors.room_id ? 'booking-room-error' : undefined}
+                                    onChange={(event) => {
+                                        setFormData({ ...formData, room_id: event.target.value });
+                                        if (formErrors.room_id) setFormErrors((prev) => ({ ...prev, room_id: '' }));
+                                    }}
+                                    className={`w-full rounded-xl border ${formErrors.room_id ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 disabled:opacity-60`}
+                                >
                                     <option value="" className="bg-[#0d2822]">Pilih ruangan yang tersedia</option>
                                     {activeRooms.map((room) => <option key={room.id} value={room.id} className="bg-[#0d2822]">{room.name} · {room.capacity} orang</option>)}
                                 </select>
-                                <FieldError message={formErrors.room_id} />
+                                <FieldError id="booking-room-error" field="room_id" message={formErrors.room_id} />
                             </div>
                             <div>
                                 <label htmlFor="title" className="mb-2 block text-sm font-semibold text-emerald-100">Nama agenda</label>
-                                <input id="title" type="text" placeholder="Contoh: Weekly product sync" value={formData.title} onChange={(event) => setFormData({ ...formData, title: event.target.value })} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20" />
-                                <FieldError message={formErrors.title} />
+                                <input
+                                    id="title"
+                                    type="text"
+                                    placeholder="Contoh: Weekly product sync"
+                                    disabled={submitting}
+                                    aria-invalid={Boolean(formErrors.title)}
+                                    aria-describedby={formErrors.title ? 'booking-title-error' : undefined}
+                                    value={formData.title}
+                                    onChange={(event) => {
+                                        setFormData({ ...formData, title: event.target.value });
+                                        if (formErrors.title) setFormErrors((prev) => ({ ...prev, title: '' }));
+                                    }}
+                                    className={`w-full rounded-xl border ${formErrors.title ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 disabled:opacity-60`}
+                                />
+                                <FieldError id="booking-title-error" field="title" message={formErrors.title} />
                             </div>
                             <div>
                                 <label htmlFor="participant_count" className="mb-2 block text-sm font-semibold text-emerald-100">Jumlah peserta</label>
-                                <input id="participant_count" type="number" min="1" value={formData.participant_count} onChange={(event) => setFormData({ ...formData, participant_count: event.target.value })} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20" />
-                                <FieldError message={formErrors.participant_count} />
+                                <input
+                                    id="participant_count"
+                                    type="number"
+                                    min="1"
+                                    disabled={submitting}
+                                    aria-invalid={Boolean(formErrors.participant_count)}
+                                    aria-describedby={formErrors.participant_count ? 'booking-participants-error' : undefined}
+                                    value={formData.participant_count}
+                                    onChange={(event) => {
+                                        setFormData({ ...formData, participant_count: event.target.value });
+                                        if (formErrors.participant_count) setFormErrors((prev) => ({ ...prev, participant_count: '' }));
+                                    }}
+                                    className={`w-full rounded-xl border ${formErrors.participant_count ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 disabled:opacity-60`}
+                                />
+                                <FieldError id="booking-participants-error" field="participant_count" message={formErrors.participant_count} />
                             </div>
                             <div>
                                 <label htmlFor="date" className="mb-2 block text-sm font-semibold text-emerald-100">Tanggal</label>
-                                <input id="date" type="date" min={today} value={formData.date} onChange={(event) => setFormData({ ...formData, date: event.target.value })} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 [color-scheme:dark]" />
-                                <FieldError message={formErrors.date} />
+                                <input
+                                    id="date"
+                                    type="date"
+                                    min={today}
+                                    disabled={submitting}
+                                    aria-invalid={Boolean(formErrors.date)}
+                                    aria-describedby={formErrors.date ? 'booking-date-error' : undefined}
+                                    value={formData.date}
+                                    onChange={(event) => {
+                                        setFormData({ ...formData, date: event.target.value });
+                                        if (formErrors.date) setFormErrors((prev) => ({ ...prev, date: '' }));
+                                    }}
+                                    className={`w-full rounded-xl border ${formErrors.date ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 [color-scheme:dark] disabled:opacity-60`}
+                                />
+                                <FieldError id="booking-date-error" field="date" message={formErrors.date} />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label htmlFor="start_time" className="mb-2 block text-sm font-semibold text-emerald-100">Mulai</label>
-                                    <input id="start_time" type="time" value={formData.start_time} onChange={(event) => setFormData({ ...formData, start_time: event.target.value })} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 [color-scheme:dark]" />
-                                    <FieldError message={formErrors.start_time} />
+                                    <input
+                                        id="start_time"
+                                        type="time"
+                                        disabled={submitting}
+                                        aria-invalid={Boolean(formErrors.start_time)}
+                                        aria-describedby={formErrors.start_time ? 'booking-start-error' : undefined}
+                                        value={formData.start_time}
+                                        onChange={(event) => {
+                                            setFormData({ ...formData, start_time: event.target.value });
+                                            if (formErrors.start_time) setFormErrors((prev) => ({ ...prev, start_time: '' }));
+                                        }}
+                                        className={`w-full rounded-xl border ${formErrors.start_time ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 [color-scheme:dark] disabled:opacity-60`}
+                                    />
+                                    <FieldError id="booking-start-error" field="start_time" message={formErrors.start_time} />
                                 </div>
                                 <div>
                                     <label htmlFor="end_time" className="mb-2 block text-sm font-semibold text-emerald-100">Selesai</label>
-                                    <input id="end_time" type="time" value={formData.end_time} onChange={(event) => setFormData({ ...formData, end_time: event.target.value })} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 [color-scheme:dark]" />
-                                    <FieldError message={formErrors.end_time} />
+                                    <input
+                                        id="end_time"
+                                        type="time"
+                                        disabled={submitting}
+                                        aria-invalid={Boolean(formErrors.end_time)}
+                                        aria-describedby={formErrors.end_time ? 'booking-end-error' : undefined}
+                                        value={formData.end_time}
+                                        onChange={(event) => {
+                                            setFormData({ ...formData, end_time: event.target.value });
+                                            if (formErrors.end_time) setFormErrors((prev) => ({ ...prev, end_time: '' }));
+                                        }}
+                                        className={`w-full rounded-xl border ${formErrors.end_time ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 [color-scheme:dark] disabled:opacity-60`}
+                                    />
+                                    <FieldError id="booking-end-error" field="end_time" message={formErrors.end_time} />
                                 </div>
                             </div>
                             <div>
                                 <label htmlFor="notes" className="mb-2 block text-sm font-semibold text-emerald-100">Catatan <span className="font-normal text-emerald-200/50">(opsional)</span></label>
-                                <textarea id="notes" rows={3} maxLength={500} placeholder="Tambahkan kebutuhan khusus atau agenda rapat" value={formData.notes} onChange={(event) => setFormData({ ...formData, notes: event.target.value })} className="w-full resize-none rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20" />
+                                <textarea
+                                    id="notes"
+                                    rows={3}
+                                    maxLength={500}
+                                    placeholder="Tambahkan kebutuhan khusus atau agenda rapat"
+                                    disabled={submitting}
+                                    aria-invalid={Boolean(formErrors.notes)}
+                                    aria-describedby={formErrors.notes ? 'booking-notes-error' : undefined}
+                                    value={formData.notes}
+                                    onChange={(event) => {
+                                        setFormData({ ...formData, notes: event.target.value });
+                                        if (formErrors.notes) setFormErrors((prev) => ({ ...prev, notes: '' }));
+                                    }}
+                                    className={`w-full resize-none rounded-xl border ${formErrors.notes ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white outline-none focus:border-[#f59e0b] focus:ring-4 focus:ring-[#f59e0b]/20 disabled:opacity-60`}
+                                />
                                 <div className="mt-1 text-right text-[11px] text-emerald-200/50">{formData.notes.length}/500</div>
-                                <FieldError message={formErrors.notes} />
+                                <FieldError id="booking-notes-error" field="notes" message={formErrors.notes} />
                             </div>
                             <button
                                 type="submit"
