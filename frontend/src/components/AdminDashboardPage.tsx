@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { approveBooking, clearToken, createRoom, createUser, deleteRoom, getBookings, getRooms, getUsers, logout, rejectBooking, updateRoom, updateUser } from '@/api';
+import { ApiError, approveBooking, clearToken, createRoom, createUser, deleteRoom, getBookings, getRooms, getUsers, logout, rejectBooking, updateRoom, updateUser } from '@/api';
 import type { Booking, Room, User } from '@/types';
 
 type Section = 'overview' | 'approvals' | 'history' | 'rooms' | 'users';
@@ -41,6 +41,7 @@ export default function AdminDashboardPage({ user }: { user: User }) {
     const [bookingSearch, setBookingSearch] = useState('');
     const [bookingDate, setBookingDate] = useState('');
     const [roomForm, setRoomForm] = useState({ name: '', capacity: '8', location: '', facilities: '', description: '', is_active: true });
+    const [roomErrors, setRoomErrors] = useState<Record<string, string>>({});
     const [editingRoom, setEditingRoom] = useState<Room | null>(null);
     const [roomDeleteTarget, setRoomDeleteTarget] = useState<Room | null>(null);
     const [togglingRoomId, setTogglingRoomId] = useState<number | null>(null);
@@ -49,6 +50,7 @@ export default function AdminDashboardPage({ user }: { user: User }) {
     const [userRole, setUserRole] = useState<'all' | User['role']>('all');
     const [userStatus, setUserStatus] = useState<'all' | User['status']>('all');
     const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: 'karyawan' as User['role'], status: 'active' as User['status'] });
+    const [userFieldErrors, setUserFieldErrors] = useState<Record<string, string>>({});
     const [creatingUser, setCreatingUser] = useState(false);
     const [userFormError, setUserFormError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -65,13 +67,59 @@ export default function AdminDashboardPage({ user }: { user: User }) {
 
     async function approve(id: number) { try { setProcessingId(id); await approveBooking(id); setToast('Booking berhasil disetujui.'); await loadData(); } catch (actionError: unknown) { setToast(actionError instanceof Error ? actionError.message : 'Gagal menyetujui booking.'); } finally { setProcessingId(null); } }
     async function reject() { if (!rejectTarget || approvalNotes.trim().length < 10) return; try { setSaving(true); await rejectBooking(rejectTarget.id, approvalNotes.trim()); setRejectTarget(null); setApprovalNotes(''); setToast('Booking ditolak dan alasannya tersimpan.'); await loadData(); } catch (actionError: unknown) { setToast(actionError instanceof Error ? actionError.message : 'Gagal menolak booking.'); } finally { setSaving(false); } }
-    async function saveRoom(event: FormEvent) { event.preventDefault(); try { setSaving(true); const payload = { name: roomForm.name.trim(), capacity: Number(roomForm.capacity), location: roomForm.location.trim(), facilities: roomForm.facilities.split(',').map((item) => item.trim()).filter(Boolean), description: roomForm.description.trim() || undefined, is_active: roomForm.is_active }; if (editingRoom) await updateRoom(editingRoom.id, payload); else await createRoom(payload); setEditingRoom(null); setRoomForm({ name: '', capacity: '8', location: '', facilities: '', description: '', is_active: true }); setToast('Ruangan berhasil disimpan.'); await loadData(); } catch (saveError: unknown) { setToast(saveError instanceof Error ? saveError.message : 'Gagal menyimpan ruangan.'); } finally { setSaving(false); } }
-    function startEditRoom(room: Room) { setEditingRoom(room); setRoomForm({ name: room.name, capacity: String(room.capacity), location: room.location || '', facilities: (room.facilities || []).join(', '), description: room.description || '', is_active: room.is_active }); }
-    function cancelEditRoom() { setEditingRoom(null); setRoomForm({ name: '', capacity: '8', location: '', facilities: '', description: '', is_active: true }); }
+    async function saveRoom(event: FormEvent) {
+        event.preventDefault();
+        setRoomErrors({});
+        try {
+            setSaving(true);
+            const payload = {
+                name: roomForm.name.trim(),
+                capacity: Number(roomForm.capacity),
+                location: roomForm.location.trim(),
+                facilities: roomForm.facilities.split(',').map((item) => item.trim()).filter(Boolean),
+                description: roomForm.description.trim() || undefined,
+                is_active: roomForm.is_active
+            };
+            if (editingRoom) await updateRoom(editingRoom.id, payload);
+            else await createRoom(payload);
+            setEditingRoom(null);
+            setRoomForm({ name: '', capacity: '8', location: '', facilities: '', description: '', is_active: true });
+            setToast('Ruangan berhasil disimpan.');
+            await loadData();
+        } catch (saveError: unknown) {
+            if (saveError instanceof ApiError && Object.keys(saveError.fieldErrors).length > 0) {
+                setRoomErrors(saveError.fieldErrors);
+            }
+            setToast(saveError instanceof Error ? saveError.message : 'Gagal menyimpan ruangan.');
+        } finally {
+            setSaving(false);
+        }
+    }
+    function startEditRoom(room: Room) { setEditingRoom(room); setRoomErrors({}); setRoomForm({ name: room.name, capacity: String(room.capacity), location: room.location || '', facilities: (room.facilities || []).join(', '), description: room.description || '', is_active: room.is_active }); }
+    function cancelEditRoom() { setEditingRoom(null); setRoomErrors({}); setRoomForm({ name: '', capacity: '8', location: '', facilities: '', description: '', is_active: true }); }
     async function toggleRoomActive(room: Room) { try { setTogglingRoomId(room.id); await updateRoom(room.id, { name: room.name, capacity: room.capacity, location: room.location || '', facilities: room.facilities, description: room.description || undefined, is_active: !room.is_active }); setToast(room.is_active ? 'Ruangan dinonaktifkan.' : 'Ruangan diaktifkan.'); await loadData(); } catch (toggleError: unknown) { setToast(toggleError instanceof Error ? toggleError.message : 'Gagal mengubah status ruangan.'); } finally { setTogglingRoomId(null); } }
     async function confirmDeleteRoom() { if (!roomDeleteTarget) return; try { setDeletingRoom(true); await deleteRoom(roomDeleteTarget.id); setRoomDeleteTarget(null); setToast('Ruangan berhasil dihapus.'); await loadData(); } catch (deleteError: unknown) { setToast(deleteError instanceof Error ? deleteError.message : 'Gagal menghapus ruangan.'); } finally { setDeletingRoom(false); } }
     async function changeUser(target: User, field: 'role' | 'status', value: User['role'] | User['status']) { try { const updated = await updateUser(target.id, { role: field === 'role' ? value as User['role'] : target.role, status: field === 'status' ? value as User['status'] : target.status }); setUsers((current) => current.map((item) => item.id === updated.id ? updated : item)); setToast('Akses pengguna diperbarui.'); } catch (saveError: unknown) { setToast(saveError instanceof Error ? saveError.message : 'Gagal memperbarui pengguna.'); } }
-    async function createUserAccount(event: FormEvent) { event.preventDefault(); setUserFormError(null); try { setCreatingUser(true); const created = await createUser(userForm); setUsers((current) => [created, ...current]); setUserForm({ name: '', email: '', password: '', role: 'karyawan', status: 'active' }); setToast('Akun pengguna berhasil dibuat.'); await loadData(); } catch (createError: unknown) { setUserFormError(createError instanceof Error ? createError.message : 'Gagal membuat akun pengguna.'); } finally { setCreatingUser(false); } }
+    async function createUserAccount(event: FormEvent) {
+        event.preventDefault();
+        setUserFormError(null);
+        setUserFieldErrors({});
+        try {
+            setCreatingUser(true);
+            const created = await createUser(userForm);
+            setUsers((current) => [created, ...current]);
+            setUserForm({ name: '', email: '', password: '', role: 'karyawan', status: 'active' });
+            setToast('Akun pengguna berhasil dibuat.');
+            await loadData();
+        } catch (createError: unknown) {
+            if (createError instanceof ApiError && Object.keys(createError.fieldErrors).length > 0) {
+                setUserFieldErrors(createError.fieldErrors);
+            }
+            setUserFormError(createError instanceof Error ? createError.message : 'Gagal membuat akun pengguna.');
+        } finally {
+            setCreatingUser(false);
+        }
+    }
 
     const pending = useMemo(() => bookings.filter((booking) => booking.status === 'pending'), [bookings]);
     const archive = useMemo(() => bookings.filter((booking) => booking.status !== 'pending'), [bookings]);
@@ -201,8 +249,8 @@ export default function AdminDashboardPage({ user }: { user: User }) {
 
             {section === 'approvals' && <BookingSection categoryLabel="PERSETUJUAN" title="Persetujuan booking" description="Tinjau dan kelola permintaan booking ruangan dari karyawan." bookings={approvalRows} search={bookingSearch} date={bookingDate} setSearch={setBookingSearch} setDate={setBookingDate} onApprove={approve} onReject={setRejectTarget} processingId={processingId} showActions empty="Tidak ada permintaan yang belum disetujui." />}
             {section === 'history' && <BookingSection categoryLabel="ARSIP" title="Riwayat booking" description="Pantau status dan jadwal rapat yang Anda buat." bookings={historyRows} search={bookingSearch} date={bookingDate} setSearch={setBookingSearch} setDate={setBookingDate} onApprove={approve} onReject={setRejectTarget} processingId={processingId} empty="Belum ada arsip booking." />}
-            {section === 'rooms' && <RoomSection rooms={rooms} form={roomForm} saving={saving} editing={editingRoom} togglingRoomId={togglingRoomId} onChange={setRoomForm} onSubmit={saveRoom} onEdit={startEditRoom} onCancelEdit={cancelEditRoom} onToggleActive={toggleRoomActive} onDelete={setRoomDeleteTarget} />}
-            {section === 'users' && <UserSection users={visibleUsers} search={userSearch} role={userRole} status={userStatus} onSearch={setUserSearch} onRole={setUserRole} onStatus={setUserStatus} onChange={changeUser} form={userForm} onFormChange={setUserForm} onCreate={createUserAccount} creating={creatingUser} formError={userFormError} />}
+            {section === 'rooms' && <RoomSection rooms={rooms} form={roomForm} errors={roomErrors} onClearError={(field) => setRoomErrors((prev) => ({ ...prev, [field]: '' }))} saving={saving} editing={editingRoom} togglingRoomId={togglingRoomId} onChange={setRoomForm} onSubmit={saveRoom} onEdit={startEditRoom} onCancelEdit={cancelEditRoom} onToggleActive={toggleRoomActive} onDelete={setRoomDeleteTarget} />}
+            {section === 'users' && <UserSection users={visibleUsers} search={userSearch} role={userRole} status={userStatus} onSearch={setUserSearch} onRole={setUserRole} onStatus={setUserStatus} onChange={changeUser} form={userForm} fieldErrors={userFieldErrors} onClearError={(field) => setUserFieldErrors((prev) => ({ ...prev, [field]: '' }))} onFormChange={setUserForm} onCreate={createUserAccount} creating={creatingUser} formError={userFormError} />}
         </main>
     </div>;
 }
@@ -271,7 +319,7 @@ function BookingSection({ categoryLabel, title, description, bookings, search, d
     ); 
 }
 
-function RoomSection({ rooms, form, saving, editing, togglingRoomId, onChange, onSubmit, onEdit, onCancelEdit, onToggleActive, onDelete }: { rooms: Room[]; form: { name: string; capacity: string; location: string; facilities: string; description: string; is_active: boolean }; saving: boolean; editing: Room | null; togglingRoomId: number | null; onChange: (value: typeof form) => void; onSubmit: (event: FormEvent) => void; onEdit: (room: Room) => void; onCancelEdit: () => void; onToggleActive: (room: Room) => void; onDelete: (room: Room) => void }) {
+function RoomSection({ rooms, form, errors, onClearError, saving, editing, togglingRoomId, onChange, onSubmit, onEdit, onCancelEdit, onToggleActive, onDelete }: { rooms: Room[]; form: { name: string; capacity: string; location: string; facilities: string; description: string; is_active: boolean }; errors: Record<string, string>; onClearError: (field: string) => void; saving: boolean; editing: Room | null; togglingRoomId: number | null; onChange: (value: typeof form) => void; onSubmit: (event: FormEvent) => void; onEdit: (room: Room) => void; onCancelEdit: () => void; onToggleActive: (room: Room) => void; onDelete: (room: Room) => void }) {
     return (
         <section className="rounded-3xl border border-emerald-800/80 bg-[#0a2e22]/50 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
             <div className="mb-6 flex items-center justify-between border-b border-emerald-800/60 pb-6">
@@ -282,12 +330,93 @@ function RoomSection({ rooms, form, saving, editing, togglingRoomId, onChange, o
                 </div>
                 {editing && <button type="button" onClick={onCancelEdit} className="rounded-xl border border-emerald-800 px-4 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-900/50">Batal edit</button>}
             </div>
-            <form onSubmit={onSubmit} className="mb-8 grid gap-4 rounded-3xl border border-emerald-800/80 bg-[#0d2822] p-6 shadow-xl sm:grid-cols-2">
-                <input required placeholder="Nama ruangan" value={form.name} onChange={(event) => onChange({ ...form, name: event.target.value })} className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition" />
-                <input required type="number" min="1" placeholder="Kapasitas orang" value={form.capacity} onChange={(event) => onChange({ ...form, capacity: event.target.value })} className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition" />
-                <input required placeholder="Lokasi ruangan" value={form.location} onChange={(event) => onChange({ ...form, location: event.target.value })} className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition" />
-                <input placeholder="Fasilitas (pisahkan dengan koma)" value={form.facilities} onChange={(event) => onChange({ ...form, facilities: event.target.value })} className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition" />
-                <button type="submit" disabled={saving} className="rounded-2xl bg-[#f57c00] px-6 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-orange-950/20 transition hover:bg-[#d96800] disabled:opacity-60 sm:col-span-2">{saving ? 'Menyimpan...' : editing ? 'Simpan perubahan' : 'Tambah ruangan baru'}</button>
+            <form onSubmit={onSubmit} aria-busy={saving} noValidate className="mb-8 grid gap-4 rounded-3xl border border-emerald-800/80 bg-[#0d2822] p-6 shadow-xl sm:grid-cols-2">
+                <div>
+                    <input
+                        required
+                        placeholder="Nama ruangan"
+                        disabled={saving}
+                        aria-invalid={Boolean(errors.name)}
+                        aria-describedby={errors.name ? 'room-name-error' : undefined}
+                        value={form.name}
+                        onChange={(event) => {
+                            onChange({ ...form, name: event.target.value });
+                            if (errors.name) onClearError('name');
+                        }}
+                        className={`w-full rounded-2xl border ${errors.name ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition disabled:opacity-60`}
+                    />
+                    {errors.name && <p id="room-name-error" role="alert" data-testid="error-name" className="mt-1.5 text-xs font-medium text-rose-400">{errors.name}</p>}
+                </div>
+                <div>
+                    <input
+                        required
+                        type="number"
+                        min="1"
+                        placeholder="Kapasitas orang"
+                        disabled={saving}
+                        aria-invalid={Boolean(errors.capacity)}
+                        aria-describedby={errors.capacity ? 'room-capacity-error' : undefined}
+                        value={form.capacity}
+                        onChange={(event) => {
+                            onChange({ ...form, capacity: event.target.value });
+                            if (errors.capacity) onClearError('capacity');
+                        }}
+                        className={`w-full rounded-2xl border ${errors.capacity ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition disabled:opacity-60`}
+                    />
+                    {errors.capacity && <p id="room-capacity-error" role="alert" data-testid="error-capacity" className="mt-1.5 text-xs font-medium text-rose-400">{errors.capacity}</p>}
+                </div>
+                <div>
+                    <input
+                        required
+                        placeholder="Lokasi ruangan"
+                        disabled={saving}
+                        aria-invalid={Boolean(errors.location)}
+                        aria-describedby={errors.location ? 'room-location-error' : undefined}
+                        value={form.location}
+                        onChange={(event) => {
+                            onChange({ ...form, location: event.target.value });
+                            if (errors.location) onClearError('location');
+                        }}
+                        className={`w-full rounded-2xl border ${errors.location ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition disabled:opacity-60`}
+                    />
+                    {errors.location && <p id="room-location-error" role="alert" data-testid="error-location" className="mt-1.5 text-xs font-medium text-rose-400">{errors.location}</p>}
+                </div>
+                <div>
+                    <input
+                        placeholder="Fasilitas (pisahkan dengan koma)"
+                        disabled={saving}
+                        aria-invalid={Boolean(errors.facilities)}
+                        aria-describedby={errors.facilities ? 'room-facilities-error' : undefined}
+                        value={form.facilities}
+                        onChange={(event) => {
+                            onChange({ ...form, facilities: event.target.value });
+                            if (errors.facilities) onClearError('facilities');
+                        }}
+                        className={`w-full rounded-2xl border ${errors.facilities ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition disabled:opacity-60`}
+                    />
+                    {errors.facilities && <p id="room-facilities-error" role="alert" data-testid="error-facilities" className="mt-1.5 text-xs font-medium text-rose-400">{errors.facilities}</p>}
+                </div>
+                <button
+                    type="submit"
+                    disabled={saving}
+                    aria-busy={saving}
+                    data-loading={saving}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#f57c00] px-6 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-orange-950/20 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
+                >
+                    {saving ? (
+                        <>
+                            <svg className="h-4 w-4 animate-spin text-slate-950" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                            </svg>
+                            <span>Menyimpan...</span>
+                        </>
+                    ) : editing ? (
+                        'Simpan perubahan'
+                    ) : (
+                        'Tambah ruangan baru'
+                    )}
+                </button>
             </form>
             <div className="space-y-4">
                 {rooms.length === 0 && <p className="rounded-xl border border-dashed border-emerald-700 px-4 py-6 text-center text-sm text-emerald-100/70">Belum ada ruangan terdaftar.</p>}
@@ -322,7 +451,7 @@ function RoomSection({ rooms, form, saving, editing, togglingRoomId, onChange, o
     );
 }
 
-function UserSection({ users, search, role, status, onSearch, onRole, onStatus, onChange, form, onFormChange, onCreate, creating, formError }: { users: User[]; search: string; role: 'all' | User['role']; status: 'all' | User['status']; onSearch: (value: string) => void; onRole: (value: 'all' | User['role']) => void; onStatus: (value: 'all' | User['status']) => void; onChange: (user: User, field: 'role' | 'status', value: User['role'] | User['status']) => void; form: { name: string; email: string; password: string; role: User['role']; status: User['status'] }; onFormChange: (value: typeof form) => void; onCreate: (event: FormEvent) => void; creating: boolean; formError: string | null }) {
+function UserSection({ users, search, role, status, onSearch, onRole, onStatus, onChange, form, fieldErrors, onClearError, onFormChange, onCreate, creating, formError }: { users: User[]; search: string; role: 'all' | User['role']; status: 'all' | User['status']; onSearch: (value: string) => void; onRole: (value: 'all' | User['role']) => void; onStatus: (value: 'all' | User['status']) => void; onChange: (user: User, field: 'role' | 'status', value: User['role'] | User['status']) => void; form: { name: string; email: string; password: string; role: User['role']; status: User['status'] }; fieldErrors: Record<string, string>; onClearError: (field: string) => void; onFormChange: (value: typeof form) => void; onCreate: (event: FormEvent) => void; creating: boolean; formError: string | null }) {
     return (
         <section className="rounded-3xl border border-emerald-800/80 bg-[#0a2e22]/50 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
             <div className="mb-6 border-b border-emerald-800/60 pb-6">
@@ -330,16 +459,89 @@ function UserSection({ users, search, role, status, onSearch, onRole, onStatus, 
                 <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">Manajemen pengguna</h2>
                 <p className="mt-1 text-sm text-emerald-100/70">Kelola akun karyawan dan hak akses administrator.</p>
             </div>
-            <form onSubmit={onCreate} className="mb-8 grid gap-4 rounded-3xl border border-emerald-800/80 bg-[#0d2822] p-6 shadow-xl sm:grid-cols-2">
-                <input required placeholder="Nama lengkap" value={form.name} onChange={(event) => onFormChange({ ...form, name: event.target.value })} className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition" />
-                <input required type="email" placeholder="Alamat email" value={form.email} onChange={(event) => onFormChange({ ...form, email: event.target.value })} className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition" />
-                <input required type="password" minLength={8} placeholder="Password (minimal 8 karakter)" value={form.password} onChange={(event) => onFormChange({ ...form, password: event.target.value })} className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition [color-scheme:dark]" />
-                <select value={form.role} onChange={(event) => onFormChange({ ...form, role: event.target.value as User['role'] })} className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white outline-none focus:border-[#f57c00] transition [color-scheme:dark]">
-                    <option value="karyawan">Karyawan</option>
-                    <option value="admin">Admin</option>
-                </select>
+            <form onSubmit={onCreate} aria-busy={creating} noValidate className="mb-8 grid gap-4 rounded-3xl border border-emerald-800/80 bg-[#0d2822] p-6 shadow-xl sm:grid-cols-2">
+                <div>
+                    <input
+                        required
+                        placeholder="Nama lengkap"
+                        disabled={creating}
+                        aria-invalid={Boolean(fieldErrors.name)}
+                        aria-describedby={fieldErrors.name ? 'user-name-error' : undefined}
+                        value={form.name}
+                        onChange={(event) => {
+                            onFormChange({ ...form, name: event.target.value });
+                            if (fieldErrors.name) onClearError('name');
+                        }}
+                        className={`w-full rounded-2xl border ${fieldErrors.name ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition disabled:opacity-60`}
+                    />
+                    {fieldErrors.name && <p id="user-name-error" role="alert" data-testid="error-user-name" className="mt-1.5 text-xs font-medium text-rose-400">{fieldErrors.name}</p>}
+                </div>
+                <div>
+                    <input
+                        required
+                        type="email"
+                        placeholder="Alamat email"
+                        disabled={creating}
+                        aria-invalid={Boolean(fieldErrors.email)}
+                        aria-describedby={fieldErrors.email ? 'user-email-error' : undefined}
+                        value={form.email}
+                        onChange={(event) => {
+                            onFormChange({ ...form, email: event.target.value });
+                            if (fieldErrors.email) onClearError('email');
+                        }}
+                        className={`w-full rounded-2xl border ${fieldErrors.email ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition disabled:opacity-60`}
+                    />
+                    {fieldErrors.email && <p id="user-email-error" role="alert" data-testid="error-user-email" className="mt-1.5 text-xs font-medium text-rose-400">{fieldErrors.email}</p>}
+                </div>
+                <div>
+                    <input
+                        required
+                        type="password"
+                        minLength={8}
+                        placeholder="Password (minimal 8 karakter)"
+                        disabled={creating}
+                        aria-invalid={Boolean(fieldErrors.password)}
+                        aria-describedby={fieldErrors.password ? 'user-password-error' : undefined}
+                        value={form.password}
+                        onChange={(event) => {
+                            onFormChange({ ...form, password: event.target.value });
+                            if (fieldErrors.password) onClearError('password');
+                        }}
+                        className={`w-full rounded-2xl border ${fieldErrors.password ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition [color-scheme:dark] disabled:opacity-60`}
+                    />
+                    {fieldErrors.password && <p id="user-password-error" role="alert" data-testid="error-user-password" className="mt-1.5 text-xs font-medium text-rose-400">{fieldErrors.password}</p>}
+                </div>
+                <div>
+                    <select
+                        value={form.role}
+                        disabled={creating}
+                        onChange={(event) => onFormChange({ ...form, role: event.target.value as User['role'] })}
+                        className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white outline-none focus:border-[#f57c00] transition [color-scheme:dark] disabled:opacity-60"
+                    >
+                        <option value="karyawan">Karyawan</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
                 {formError && <p role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs font-medium text-rose-300 sm:col-span-2">{formError}</p>}
-                <button type="submit" disabled={creating} className="rounded-2xl bg-[#f57c00] px-6 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-orange-950/20 transition hover:bg-[#d96800] disabled:opacity-60 sm:col-span-2">{creating ? 'Membuat akun...' : 'Buat akun pengguna'}</button>
+                <button
+                    type="submit"
+                    disabled={creating}
+                    aria-busy={creating}
+                    data-loading={creating}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#f57c00] px-6 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-orange-950/20 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
+                >
+                    {creating ? (
+                        <>
+                            <svg className="h-4 w-4 animate-spin text-slate-950" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                            </svg>
+                            <span>Membuat akun...</span>
+                        </>
+                    ) : (
+                        'Buat akun pengguna'
+                    )}
+                </button>
             </form>
             <div className="mb-6 grid gap-4 sm:grid-cols-3">
                 <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Cari nama atau email..." className="w-full rounded-2xl border border-emerald-800 bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition" />
