@@ -104,11 +104,13 @@ class ThinControllerServiceArchitectureAuditTest extends TestCase
         $employee = User::factory()->create(['role' => 'karyawan']);
         $room = Room::factory()->create(['capacity' => 20]);
 
+        $nextWeekday = now()->next('Monday')->setTime(9, 0, 0);
+
         // Test create booking through API / Service
         $response = $this->actingAs($employee)->postJson('/api/v1/bookings', [
             'room_id' => $room->id,
-            'start_time' => now()->addDays(2)->format('Y-m-d 09:00:00'),
-            'end_time' => now()->addDays(2)->format('Y-m-d 11:00:00'),
+            'start_time' => $nextWeekday->format('Y-m-d H:i:s'),
+            'end_time' => $nextWeekday->copy()->addHours(2)->format('Y-m-d H:i:s'),
             'title' => 'Sprint Architecture Review',
             'agenda' => 'Sprint Architecture Review',
             'participant_count' => 10,

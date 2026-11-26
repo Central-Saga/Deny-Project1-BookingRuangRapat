@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { approveBooking, clearToken, createRoom, createUser, deleteRoom, getBookings, getRooms, getUsers, logout, rejectBooking, updateRoom, updateUser } from '@/services/api';
+import { approveBooking, clearToken, createRoom, createUser, deleteRoom, getBookings, getRooms, getUsers, logout, rejectBooking, updateRoom, updateUser } from '@/api';
 import type { Booking, Room, User } from '@/types';
 
 type Section = 'overview' | 'approvals' | 'history' | 'rooms' | 'users';
