@@ -16,9 +16,13 @@ import {
     getToken,
     hasToken,
     saveToken,
+    uploadFile,
+    MAX_UPLOAD_FILE_SIZE,
+    ACCEPTED_UPLOAD_MIMES,
     type ApiErrorEnvelope,
     type ApiErrorItem,
     type RequestOptions,
+    type UploadResponse,
 } from './client';
 import {
     clearApiCache,
@@ -43,9 +47,13 @@ export {
     invalidateApiCache,
     saveToken,
     setApiCache,
+    uploadFile,
+    MAX_UPLOAD_FILE_SIZE,
+    ACCEPTED_UPLOAD_MIMES,
     type ApiErrorEnvelope,
     type ApiErrorItem,
     type RequestOptions,
+    type UploadResponse,
 };
 
 export interface DataEnvelope<T> {
