@@ -122,7 +122,7 @@ describe('Frontend Error Resilience, Error Boundaries, and Deep Links Audit (#17
             // Verifikasi state awal dan getDerivedStateFromError
             const derived = ErrorBoundary.getDerivedStateFromError(new Error('Crash'));
             expect(derived.hasError).toBe(true);
-            expect(derived.error.message).toBe('Crash');
+            expect(derived.error?.message).toBe('Crash');
             expect(element).toBeDefined();
         });
 
