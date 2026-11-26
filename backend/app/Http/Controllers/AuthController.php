@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\AuthService;
+use App\DTOs\ChangePasswordDTO;
+use App\Services\Contracts\AuthServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
     public function __construct(
-        protected AuthService $authService
+        protected AuthServiceInterface $authService
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -126,7 +127,9 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $this->authService->changePassword($user, $newPassword);
+        $dto = ChangePasswordDTO::fromRequest($request);
+        $this->authService->changePassword($user, $dto);
+
         $request->setUserResolver(fn () => null);
         auth()->forgetGuards();
 

@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\DTOs\ChangePasswordDTO;
 use App\Models\User;
+use App\Services\Contracts\AuthServiceInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Hash;
  * Service Layer untuk Autentikasi dan Manajemen Sesi Pengguna.
  * Memisahkan logika bisnis, query database, dan cache dari AuthController.
  */
-class AuthService
+class AuthService implements AuthServiceInterface
 {
     /**
      * Memproses otentikasi login pengguna.
@@ -26,7 +28,10 @@ class AuthService
             return null;
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = DB::transaction(function () use ($user): string {
+            return $user->createToken('auth_token')->plainTextToken;
+        });
+
         $cookieMinutes = (int) config('sanctum.expiration', 1440);
 
         // Cache informasi status sesi user untuk verifikasi cepat
@@ -44,7 +49,7 @@ class AuthService
     }
 
     /**
-     * Memproses logout pengguna dan mencabut token aktif.
+     * Memproses logout pengguna dan mencabut token aktif dalam transaksi DB.
      */
     public function logout(?User $user): void
     {
@@ -52,23 +57,27 @@ class AuthService
             return;
         }
 
-        if ($token = $user->currentAccessToken()) {
-            $token->delete();
-        } else {
-            $user->tokens()->delete();
-        }
+        DB::transaction(function () use ($user): void {
+            if ($token = $user->currentAccessToken()) {
+                $token->delete();
+            } else {
+                $user->tokens()->delete();
+            }
+        });
 
         Cache::forget("user_session_{$user->id}");
     }
 
     /**
-     * Mengubah password pengguna dan mematikan semua sesi lama.
+     * Mengubah password pengguna dan mematikan semua sesi lama dalam transaksi DB.
      */
-    public function changePassword(User $user, string $newPassword): void
+    public function changePassword(User $user, ChangePasswordDTO|string $newPassword): void
     {
-        DB::transaction(function () use ($user, $newPassword): void {
+        $passwordValue = $newPassword instanceof ChangePasswordDTO ? $newPassword->newPassword : $newPassword;
+
+        DB::transaction(function () use ($user, $passwordValue): void {
             $user->update([
-                'password' => Hash::make($newPassword),
+                'password' => Hash::make($passwordValue),
             ]);
 
             // Revoke all existing tokens for this user so old tokens become dead

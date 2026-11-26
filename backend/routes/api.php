@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::post('/password/change', [AuthController::class, 'changePassword']);
     Route::put('/password', [AuthController::class, 'changePassword']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::post('/uploads', [UploadController::class, 'store']);
 
     // Audit 496 Parameter 7, 16: Route Versioning Prefix /api/v1/ pada Seluruh Rute Booking dan Ruangan
