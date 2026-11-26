@@ -6,19 +6,19 @@ Saga MeetSpace adalah aplikasi web untuk pengelolaan pemesanan ruang rapat. Kary
 
 > **Lingkungan:** Panduan ini ditujukan untuk pengembangan/demo lokal menggunakan Docker Compose. Akun demo dan nilai konfigurasi contoh **bukan** untuk produksi.
 
+---
+
 ## Fitur
 
 **Karyawan**
-
 - Login/logout menggunakan akun karyawan.
 - Melihat daftar ruangan dan informasi ketersediaan.
 - Membuat, mengubah, atau membatalkan booking sesuai aturan aplikasi.
 - Melihat jadwal, status pengajuan, dan riwayat booking.
 
 **Admin**
-
 - Login/logout menggunakan akun administrator.
-- Mengelola data ruangan dan pengguna.
+- Mengelola data ruangan dan pengguna (`/api/v1/users`).
 - Meninjau pengajuan booking, menyetujui, atau menolak pengajuan.
 - Melihat informasi booking melalui dashboard.
 
@@ -26,7 +26,7 @@ Beberapa tindakan dibatasi oleh role, status booking, dan aturan validasi di bac
 
 ### Otorisasi (RBAC)
 
-Satu-satunya sumber otorisasi adalah kolom `users.role` (`admin` atau `karyawan`). Aplikasi tidak memakai paket `spatie/laravel-permission`.
+Satu-satunya sumber otorisasi adalah kolom `users.role` (`admin` atau `karyawan`).
 
 | Aksi | Admin | Karyawan |
 |------|:-----:|:--------:|
@@ -39,227 +39,217 @@ Satu-satunya sumber otorisasi adalah kolom `users.role` (`admin` atau `karyawan`
 | Membatalkan booking | semua | milik sendiri |
 | Menyetujui/menolak booking | ✅ | ❌ |
 
-## API
-
-Spesifikasi OpenAPI 3.1 tersedia di [docs/openapi.yaml](docs/openapi.yaml). Server lokal default adalah `http://localhost:8000/api`. Kecuali `POST /login`, endpoint memerlukan token Sanctum pada header `Authorization: Bearer <token>`.
-
-Spesifikasi ini mencakup seluruh **18 operasi** yang saat ini dideklarasikan di `backend/routes/api.php`. Deskripsi issue menyebut 20 endpoint, tetapi dua route tambahan tidak ditemukan pada source route saat ini. Limit khusus: login 5 request/menit; membuat dan membatalkan booking masing-masing 30 request/menit.
+---
 
 ## Teknologi
 
 | Komponen | Teknologi |
 | --- | --- |
-| Frontend | Next.js 16.3.4, React 19, TypeScript, Tailwind CSS 4 |
-| Backend | Laravel / PHP 8.3, Laravel Sanctum |
-| Database | PostgreSQL 16 |
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS |
+| Backend | Laravel 11 / PHP 8.3, Laravel Sanctum |
+| Database | PostgreSQL 16 (SQLite in-memory untuk testing) |
 | Lingkungan lokal | Docker dan Docker Compose |
 
-## Struktur repository
+---
+
+## Struktur Repository
 
 ```text
 .
 ├── backend/                  # API Laravel, migrasi, seeder, dan tests
+│   ├── app/                  # Controller, Models, Services, Rules
 │   ├── database/seeders/     # DatabaseSeeder dan RoomSeeder
 │   ├── .env.example          # Template environment Laravel
+│   ├── README.md             # Dokumentasi modul backend
 │   └── Dockerfile
 ├── frontend/                 # Aplikasi Next.js
 │   ├── src/app/              # Halaman aplikasi
 │   ├── src/components/       # Komponen dashboard, booking, admin
+│   ├── src/api/              # Centralized API client & cache layer
+│   ├── src/shared/ui/        # Komponen presentasional murni
+│   ├── README.md             # Dokumentasi modul frontend
 │   └── Dockerfile
+├── docs/                     # Dokumentasi arsitektur, PRD, dan openapi.yaml
+├── shared/ui/                # Presentational UI export
 ├── .env.example              # Template variabel Docker Compose
 ├── docker-compose.yml
 └── README.md
 ```
 
-## Persyaratan
+---
 
-- Git.
-- Docker Desktop (Windows/macOS) atau Docker Engine dengan plugin Docker Compose (Linux).
-- Port lokal **3000**, **8000**, dan **5432** tersedia, atau disesuaikan pada `docker-compose.yml`.
+## Persyaratan Sistem
+
+- Git
+- Docker Desktop (Windows/macOS) atau Docker Engine dengan plugin Docker Compose (Linux)
+- Port lokal **3000**, **8000**, dan **5432** tersedia
 
 Node.js, PHP, dan PostgreSQL **tidak perlu diinstal di host** jika menggunakan Docker Compose.
 
-## Cara menjalankan dari fresh clone
+---
 
-Panduan utama di bawah menggunakan **PowerShell (Windows)**. Untuk macOS/Linux, gunakan `cp` sebagai pengganti `Copy-Item`.
+## Cara Menjalankan dari Nol (Quick Start)
 
-### 1. Clone repository
+Panduan langkah demi langkah berikut menjamin aplikasi dapat di-*boot* dan dijalankan dari awal (*fresh environment*) dengan standar waktu **≤ 15 menit sampai login** (estimasi aktual: 2–3 menit).
 
-```powershell
+### 1. Clone repository dan masuk ke direktori proyek
+
+```bash
 git clone https://github.com/Central-Saga/Deny-Project1-BookingRuangRapat.git
 cd Deny-Project1-BookingRuangRapat
 ```
 
-> Nama direktori dapat berbeda apabila Anda meng-clone ke folder dengan nama pilihan sendiri.
+### 2. Siapkan konfigurasi environment (.env)
 
-### 2. Siapkan konfigurasi environment
+Salin template environment untuk root Compose dan backend Laravel:
 
-```powershell
-Copy-Item .env.example .env
-Copy-Item backend/.env.example backend/.env
+```bash
+# Linux / macOS / Bash
+cp .env.example .env
+cp backend/.env.example backend/.env
 ```
 
-Gunakan editor teks untuk menyesuaikan kedua file berikut:
+*(Untuk Windows PowerShell: `Copy-Item .env.example .env` dan `Copy-Item backend/.env.example backend/.env`)*
 
-- **`.env` di root repository:** atur `DB_PASSWORD` menjadi password database **lokal** pilihan Anda; `DB_USERNAME`, `DB_DATABASE`, dan `NEXT_PUBLIC_API_URL` dapat dibiarkan sesuai contoh untuk demo lokal.
-- **`backend/.env`:** biarkan `DB_HOST=db`, `DB_PORT=5432`, `DB_CONNECTION=pgsql`, dan atur `APP_ENV=local`, `APP_DEBUG=true` hanya untuk pengembangan (di Compose, nilai `APP_DEBUG` diambil dari `.env` root, default `false`). Variabel database yang ditetapkan Compose akan diteruskan ke container backend. Nilai `APP_KEY` akan dibuat pada langkah berikutnya.
+### 3. Build dan jalankan seluruh container
 
-**Penting:** Root `.env` dipakai Docker Compose untuk substitusi variabel database. `backend/.env` dipakai untuk konfigurasi Laravel melalui `env_file`. Jangan berasumsi root `APP_KEY` dipakai Laravel. Jangan commit file `.env` atau menggunakan akun/password demo di server publik.
-
-### 3. Buat APP_KEY Laravel
-
-Saat file `backend/.env` masih memiliki `APP_KEY=` kosong, jalankan:
-
-```powershell
-docker compose run --rm -T backend php artisan key:generate --show
-```
-
-Perintah ini mengeluarkan satu nilai yang dimulai dengan `base64:`. Salin **hanya nilai tersebut** ke baris `APP_KEY=` pada **`backend/.env`** (contoh format: `APP_KEY=base64:...`). Jangan membagikan nilai key kepada orang lain.
-
-> Perintah `docker compose run` bisa memulai service PostgreSQL sesuai dependency. File `.env` lokal tidak ikut disalin ke Docker image karena aturan `.dockerignore`.
-
-### 4. Build dan jalankan aplikasi
-
-```powershell
+```bash
 docker compose up -d --build
+```
+
+Pastikan seluruh service berstatus running dan database healthy:
+
+```bash
 docker compose ps
 ```
 
-Pastikan service `db` berstatus healthy dan service `backend` serta `frontend` berjalan. Build pertama membutuhkan waktu lebih lama daripada start berikutnya.
+### 4. Buat Application Key Laravel
 
-### 5. Migrasi database dan isi data demo
-
-```powershell
-docker compose exec -T backend php artisan migrate --force
-docker compose exec -T backend php artisan db:seed --force
+```bash
+docker compose exec -T backend php artisan key:generate --force
 ```
 
-Seeder mengisi akun demo serta tiga ruangan awal: **Ruang Rapat Utama**, **Ruang Diskusi**, dan **Jineng Meet**. Perintah `db:seed` menggunakan `updateOrCreate` untuk data tersebut dan dapat memperbarui password akun demo; jalankan hanya pada lingkungan pengembangan/demo.
+### 5. Jalankan migrasi database dan isi data demo (Seeding)
 
-### 6. Buka aplikasi
+```bash
+docker compose exec -T backend php artisan migrate --seed --force
+```
 
-| Service | Alamat |
-| --- | --- |
-| Aplikasi web / formulir login | http://localhost:3000 |
-| Backend API | http://localhost:8000/api |
-| Endpoint login API | `POST http://localhost:8000/api/login` |
+Perintah di atas mengeksekusi migrasi skema tabel PostgreSQL dan mengisi data awal berupa ruangan serta akun pengujian (`admin@example.com` dan `karyawan@example.com`).
 
-**Gunakan halaman `/` untuk login**, bukan `/login` (tidak ada page Next.js terpisah di route tersebut pada struktur project yang diaudit).
+### 6. Akses aplikasi dan login
 
-## Akun demo
+Buka peramban (browser) dan akses alamat berikut:
 
-Akun berikut dibuat oleh `backend/database/seeders/DatabaseSeeder.php` saat `db:seed` dijalankan.
-
-| Hak akses | Email | Password |
+| Layanan | Alamat Akses | Keterangan |
 | --- | --- | --- |
-| Admin | `admin@example.com` | `password` |
-| Karyawan | `karyawan@example.com` | `password` |
+| **Aplikasi Web (Form Login)** | **http://localhost:3000** | Form login tersedia langsung di halaman utama `/` |
+| **Backend REST API** | **http://localhost:8000/api** | Endpoint dasar API |
+| **Spesifikasi OpenAPI** | [docs/openapi.yaml](docs/openapi.yaml) | Dokumentasi OpenAPI 3.1 |
 
-**Hanya untuk demo lokal.** Jangan mengekspos sistem yang memakai kredensial bawaan ini ke internet; ubah/nonaktifkan akun demo sebelum deployment publik.
+---
 
-## Panduan singkat penggunaan
+## Akun Demo Pengujian
 
-1. Buka `http://localhost:3000` lalu login sebagai karyawan.
-2. Lihat daftar ruangan dan jadwal, pilih waktu yang tersedia, kemudian ajukan booking.
-3. Tinjau status booking pada dashboard atau riwayat; lakukan perubahan atau pembatalan bila diizinkan sistem.
-4. Logout, login sebagai admin, lalu tinjau dan proses pengajuan booking.
-5. Gunakan menu admin untuk mengelola data ruangan/pengguna sesuai hak akses.
+Akun berikut dibuat otomatis saat proses seeder:
 
-## Screenshot aplikasi
+| Hak Akses (Role) | Email | Password | Hak Akses Utama |
+|---|---|---|---|
+| **Admin** | `admin@example.com` | `password` | Manajemen ruangan, pengguna, dan persetujuan pengajuan booking |
+| **Karyawan** | `karyawan@example.com` | `password` | Melihat jadwal ruangan, membuat booking rapat, membatalkan booking sendiri |
 
-Berikut tampilan aplikasi Saga MeetSpace yang dijalankan secara lokal.
+> **Catatan Keamanan:** Akun bawaan ini hanya untuk keperluan demo dan pengujian lokal. Ganti kredensial atau nonaktifkan sebelum deployment ke server publik. Password default dikonfigurasi melalui variabel `SEED_PASSWORD` (default: `password`).
+
+---
+
+## Cara Menjalankan Secara Lokal (Tanpa Docker)
+
+Jika Anda ingin menjalankan frontend dan backend secara native pada host:
+
+### A. Menjalankan Backend Laravel
+```bash
+cd backend
+cp .env.example .env
+composer install
+php artisan key:generate
+php artisan migrate --seed --force
+php artisan serve --port=8000
+```
+
+### B. Menjalankan Frontend Next.js
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Aplikasi web dapat diakses di [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Screenshot Aplikasi
+
+Berikut tampilan antarmuka Saga MeetSpace saat dijalankan:
 
 ### 1. Halaman Login
-
 ![Halaman Login Saga MeetSpace](docs/screenshots/login.png)
 
 ### 2. Dashboard Karyawan
-
 ![Dashboard Karyawan Saga MeetSpace](docs/screenshots/karyawan-dashboard.png)
 
 ### 3. Form Booking Ruang Rapat
-
 ![Form Booking Saga MeetSpace](docs/screenshots/booking.png)
 
 ### 4. Dashboard Admin
-
 ![Dashboard Admin Saga MeetSpace](docs/screenshots/admin-dashboard.png)
 
-## Perintah Docker yang berguna
+---
 
-```powershell
-# Status service
+## Perintah Docker yang Berguna
+
+```bash
+# Cek status seluruh service
 docker compose ps
 
-# Log seluruh service
-docker compose logs --tail=100
+# Melihat log seluruh service
+docker compose logs -f --tail=100
 
-# Log backend saja
-docker compose logs --tail=100 backend
+# Melihat log backend saja
+docker compose logs -f --tail=100 backend
 
-# Log frontend saja
-docker compose logs --tail=100 frontend
-
-# Hentikan container, pertahankan volume database
+# Menghentikan container (data volume database tetap tersimpan)
 docker compose down
 
-# Jalankan kembali tanpa build jika image tersedia
-docker compose up -d
+# Menghentikan dan menghapus volume database (jika ingin reset total)
+docker compose down -v
 ```
 
-**Jangan jalankan `docker compose down -v`** kecuali benar-benar ingin menghapus data yang tersimpan dalam volume PostgreSQL.
+---
 
 ## Troubleshooting
 
-| Masalah | Pemeriksaan/solusi |
+| Masalah | Solusi |
 | --- | --- |
-| Docker Engine tidak dapat dihubungi | Jalankan Docker Desktop, lalu coba `docker info`. |
-| Port 3000, 8000, atau 5432 sudah digunakan | Bebaskan port atau sesuaikan mapping `ports:` pada Compose. |
-| `APP_KEY` belum disetel | Buat key dengan langkah 3, isi `backend/.env`, lalu recreate service backend agar environment baru terbaca. |
-| Koneksi database gagal | Pastikan `docker compose ps` menunjukkan `db` healthy, cek `DB_PASSWORD` root `.env`, lalu periksa `docker compose logs backend db`. |
-| Tabel belum tersedia | Jalankan `docker compose exec -T backend php artisan migrate --force`. |
-| Akun demo tidak ada | Jalankan `docker compose exec -T backend php artisan db:seed --force` pada database demo. |
-| `http://localhost:3000/login` menampilkan 404 | Akses `http://localhost:3000/`; form login merupakan bagian dari halaman utama. |
-| Muncul peringatan `next start` terkait `standalone` | Periksa `frontend/next.config.ts` dan `frontend/Dockerfile`. Peringatan tersebut perlu ditangani dalam perbaikan konfigurasi frontend; status container *Running* saja belum membuktikan semua halaman bekerja. |
+| Port 3000, 8000, atau 5432 sudah digunakan | Hentikan proses yang memakai port tersebut atau ubah port pada `docker-compose.yml`. |
+| Database connection error | Pastikan container `db` healthy dengan `docker compose ps`, lalu periksa `DB_PASSWORD` di `.env`. |
+| `APP_KEY` belum disetel | Jalankan `docker compose exec -T backend php artisan key:generate --force`. |
+| Halaman `/login` menampilkan 404 | Akses langsung [http://localhost:3000/](http://localhost:3000/) (halaman root memuat form login). |
 
-Untuk memeriksa konfigurasi Compose tanpa memaparkan password hasil substitusi:
+---
 
-```powershell
-docker compose config --quiet
-```
+## Pengujian Otomatis
 
-## Keamanan dan catatan deployment
-
-- `.env` dan `backend/.env` adalah file privat; jangan commit atau bagikan isinya.
-- `.env.example` berisi contoh/placeholder, bukan kunci atau password aktif.
-- `.dockerignore` backend mengecualikan `.env` agar rahasia lokal tidak disalin oleh `COPY . .` ke image.
-- Ganti kredensial dan nonaktifkan akun demo sebelum deployment publik.
-- **Produksi:** set `APP_ENV=production` dan `APP_DEBUG=false` (default aman pada `.env.example`). `APP_DEBUG=true` hanya untuk pengembangan lokal karena membocorkan stack trace dan detail environment. Compose meneruskan `APP_DEBUG` dari `.env` root dengan default `false`; untuk debug lokal set `APP_DEBUG=true` di `.env` root.
-- Konfigurasi Compose di repository ini ditujukan untuk **demo/pengembangan lokal**, belum otomatis merupakan konfigurasi produksi yang aman.
-
-## Pengujian dan pengembangan
-
-Backend menyimpan pengujian Laravel pada `backend/tests/`. Contoh menjalankan tes dari container backend:
-
-```powershell
-docker compose exec -T backend php artisan test
-```
-
-### Menjalankan Backend Secara Lokal (Tanpa Docker)
-
-Untuk menjalankan dan menguji backend secara langsung dari host:
-
-```powershell
-cd backend
-composer install
-Copy-Item .env.example .env
-php artisan key:generate
-php artisan test
-```
-
-> **Catatan Struktur Monorepo:** Seluruh kode aplikasi backend Laravel, file konfigurasi, dependensi Composer (`composer.json`), artisan CLI script (`artisan`), migrasi, dan test suite berada di dalam direktori `backend/`. Direktori root repository adalah workspace monorepo (backend + frontend). Selalu jalankan perintah artisan dari dalam direktori `backend/` (`cd backend && php artisan ...`) atau via Docker Compose (`docker compose exec backend php artisan ...`).
-
-Periksa konfigurasi database pengujian sebelum menjalankan test; jangan gunakan database berisi data penting. Frontend dapat dicek melalui build Docker atau perintah npm di direktori `frontend` jika Node.js tersedia pada host.
+- **Backend Tests (PHPUnit):**
+  ```bash
+  cd backend
+  php artisan test
+  ```
+- **Frontend Tests (Vitest):**
+  ```bash
+  cd frontend
+  npm test
+  ```
 
 ---
 
