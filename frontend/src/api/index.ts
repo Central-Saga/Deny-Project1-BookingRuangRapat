@@ -44,6 +44,21 @@ export {
     type RequestOptions,
 };
 
+export interface DataEnvelope<T> {
+    data: T;
+}
+
+function hasDataEnvelope<T>(payload: DataEnvelope<T> | T): payload is DataEnvelope<T> {
+    return Boolean(payload && typeof payload === 'object' && 'data' in payload);
+}
+
+function unwrapResponse<T>(payload: DataEnvelope<T> | T): T {
+    if (hasDataEnvelope(payload)) {
+        return payload.data;
+    }
+    return payload;
+}
+
 // ==========================================
 // Authentication
 // ==========================================
@@ -107,7 +122,7 @@ export async function createRoom(payload: {
     }).catch((err) => {
         throw new Error(err.message || 'Gagal menambahkan ruangan');
     });
-    return (data as { data?: Room }).data ?? (data as Room);
+    return unwrapResponse(data);
 }
 
 export async function updateRoom(
@@ -129,7 +144,7 @@ export async function updateRoom(
     }).catch((err) => {
         throw new Error(err.message || 'Gagal memperbarui ruangan');
     });
-    return (data as { data?: Room }).data ?? (data as Room);
+    return unwrapResponse(data);
 }
 
 export async function deleteRoom(id: number): Promise<void> {
@@ -170,7 +185,7 @@ export async function createBooking(payload: {
         throw new Error(err.message || 'Gagal membuat pemesanan');
     });
     invalidateApiCache('availability');
-    return (data as { data?: Booking }).data ?? (data as Booking);
+    return unwrapResponse(data);
 }
 
 export async function updateBooking(
@@ -193,7 +208,7 @@ export async function updateBooking(
         throw new Error(err.message || 'Gagal memperbarui pemesanan');
     });
     invalidateApiCache('availability');
-    return (data as { data?: Booking }).data ?? (data as Booking);
+    return unwrapResponse(data);
 }
 
 export async function approveBooking(id: number): Promise<Booking> {
@@ -204,7 +219,7 @@ export async function approveBooking(id: number): Promise<Booking> {
         throw new Error(err.message || 'Gagal menyetujui booking');
     });
     invalidateApiCache('availability');
-    return (data as { data?: Booking }).data ?? (data as Booking);
+    return unwrapResponse(data);
 }
 
 export async function rejectBooking(id: number, approval_notes: string): Promise<Booking> {
@@ -217,7 +232,7 @@ export async function rejectBooking(id: number, approval_notes: string): Promise
         throw new Error(err.message || 'Gagal menolak booking');
     });
     invalidateApiCache('availability');
-    return (data as { data?: Booking }).data ?? (data as Booking);
+    return unwrapResponse(data);
 }
 
 export async function cancelBooking(id: number, cancellation_reason: string): Promise<void> {
@@ -265,7 +280,7 @@ export async function createUser(payload: {
     }).catch((err) => {
         throw new Error(err.message || 'Gagal membuat akun pengguna');
     });
-    return (data as { data?: User }).data ?? (data as User);
+    return unwrapResponse(data);
 }
 
 export async function updateUser(
@@ -280,5 +295,5 @@ export async function updateUser(
     }).catch((err) => {
         throw new Error(err.message || 'Gagal memperbarui pengguna');
     });
-    return (data as { data?: User }).data ?? (data as User);
+    return unwrapResponse(data);
 }

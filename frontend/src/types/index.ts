@@ -1,35 +1,19 @@
-export interface User {
-    id: number;
-    name: string;
-    email: string;
-    role: 'admin' | 'karyawan';
-    status: 'active' | 'inactive';
-    created_at?: string;
-}
+/**
+ * Frontend Data Types disinkronisasikan langsung dari kontrak OpenAPI 3.1.0 (Single Source of Truth).
+ * Mencegah duplikasi tipe manual antara backend dan frontend (Audit 496 - Issue #168).
+ */
 
-export interface Room {
-    id: number;
-    name: string;
-    capacity: number;
-    location?: string;
-    facilities?: string[];
-    description?: string;
-    is_active: boolean;
-    created_at?: string;
-}
+import type { components } from './openapi';
 
-export interface Booking {
-    id: number;
-    room_id: number;
-    user_id: number;
-    title: string;
-    participant_count: number;
-    start_time: string;
-    end_time: string;
-    status: 'pending' | 'approved' | 'rejected' | 'cancelled';
-    notes?: string;
-    cancellation_reason?: string;
-    approval_notes?: string;
-    user?: User;
-    room?: Room;
-}
+export type User = components['schemas']['User'];
+export type Room = components['schemas']['Room'];
+export type Booking = components['schemas']['Booking'];
+export type RoomInput = components['schemas']['RoomInput'];
+export type BookingInput = components['schemas']['BookingInput'];
+export type UserCreateInput = components['schemas']['UserCreateInput'];
+export type UserUpdateInput = components['schemas']['UserUpdateInput'];
+export type ErrorItem = components['schemas']['ErrorItem'];
+export type ErrorEnvelope = components['schemas']['ErrorEnvelope'];
+export type PaginationMeta = components['schemas']['PaginationMeta'];
+
+export type { components, paths } from './openapi';

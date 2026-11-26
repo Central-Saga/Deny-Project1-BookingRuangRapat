@@ -4,13 +4,21 @@
  * dan pencegahan race conditions akibat request beruntun.
  */
 
-interface CacheEntry<T> {
+interface CacheEntry<T = unknown> {
     data: T;
     expiresAt: number;
     tag?: string;
 }
 
-const memoryCache = new Map<string, CacheEntry<unknown>>();
+interface CacheStore {
+    get<T>(key: string): CacheEntry<T> | undefined;
+    set<T>(key: string, value: CacheEntry<T>): void;
+    delete(key: string): boolean;
+    clear(): void;
+    entries(): IterableIterator<[string, CacheEntry<unknown>]>;
+}
+
+const memoryCache: CacheStore = new Map();
 
 // Map untuk melacak in-flight request guna mencegah race condition
 const inFlightControllers = new Map<string, AbortController>();
@@ -30,7 +38,7 @@ export function setApiCache<T>(key: string, data: T, ttlMs = 60000, tag?: string
  * Ambil data dari cache jika belum kedaluwarsa.
  */
 export function getApiCache<T>(key: string): T | null {
-    const entry = memoryCache.get(key) as CacheEntry<T> | undefined;
+    const entry = memoryCache.get<T>(key);
     if (!entry) return null;
 
     if (Date.now() > entry.expiresAt) {
