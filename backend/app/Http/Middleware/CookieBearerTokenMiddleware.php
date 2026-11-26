@@ -14,12 +14,12 @@ class CookieBearerTokenMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->bearerToken()) {
+        if (! $request->bearerToken()) {
             $token = $request->cookie('meetspace_auth_token')
                 ?? $request->cookie('auth_token')
                 ?? $request->cookie('token');
 
-            if (!$token && ($cookieHeader = $request->header('cookie'))) {
+            if (! $token && ($cookieHeader = $request->header('cookie'))) {
                 if (preg_match('/(?:^|;\s*)(?:meetspace_auth_token|auth_token|token)=([^;]+)/', $cookieHeader, $matches)) {
                     $token = urldecode($matches[1]);
                 }
@@ -32,7 +32,7 @@ class CookieBearerTokenMiddleware
                     // Token is already in plain text
                 }
 
-                $request->headers->set('Authorization', 'Bearer ' . $token);
+                $request->headers->set('Authorization', 'Bearer '.$token);
             }
         }
 

@@ -20,7 +20,7 @@ class UploadValidationAuditTest extends TestCase
         $this->assertFileExists(base_path('app/Http/Requests/StoreRoomRequest.php'));
         $this->assertFileExists(base_path('app/Http/Requests/FileUploadRequest.php'));
 
-        $fileRequest = new FileUploadRequest();
+        $fileRequest = new FileUploadRequest;
         $fileRules = $fileRequest->rules()['file'];
 
         // Backend parameter 4.8: Upload divalidasi isi (mimetypes), dimensi (dimensions), dan ukuran (max:)
@@ -29,7 +29,7 @@ class UploadValidationAuditTest extends TestCase
         $this->assertStringContainsString('dimensions', $rulesString);
         $this->assertStringContainsString('max:', $rulesString);
 
-        $roomRequest = new StoreRoomRequest();
+        $roomRequest = new StoreRoomRequest;
         $roomImageRules = $roomRequest->rules()['image'];
         $roomRulesString = is_array($roomImageRules) ? implode('|', $roomImageRules) : $roomImageRules;
         $this->assertStringContainsString('mimetypes', $roomRulesString);
@@ -120,8 +120,8 @@ class UploadValidationAuditTest extends TestCase
             'location' => 'Lantai 1',
             'image' => $badFile,
         ])->assertStatus(422)
-          ->assertJsonPath('success', false)
-          ->assertJsonPath('errors.0.field', 'image');
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('errors.0.field', 'image');
 
         // Invalid dimensions on room image upload
         $badDimensions = UploadedFile::fake()->image('tiny.png', 10, 10);
@@ -131,7 +131,7 @@ class UploadValidationAuditTest extends TestCase
             'location' => 'Lantai 1',
             'image' => $badDimensions,
         ])->assertStatus(422)
-          ->assertJsonPath('success', false)
-          ->assertJsonPath('errors.0.field', 'image');
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('errors.0.field', 'image');
     }
 }

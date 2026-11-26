@@ -22,7 +22,7 @@ class AuthService
     {
         $user = User::where('email', $email)->first();
 
-        if (!$user || $user->status !== 'active' || !Hash::check($password, $user->password)) {
+        if (! $user || $user->status !== 'active' || ! Hash::check($password, $user->password)) {
             return null;
         }
 
@@ -48,7 +48,7 @@ class AuthService
      */
     public function logout(?User $user): void
     {
-        if (!$user) {
+        if (! $user) {
             return;
         }
 

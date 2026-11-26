@@ -11,7 +11,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('bookings:cancel-expired', function () {
-    $job = new CancelExpiredBookingsJob();
+    $job = new CancelExpiredBookingsJob;
     $cancelled = $job->handle();
     $this->info("Cancelled {$cancelled} expired booking(s).");
 })->purpose('Cancel pending bookings that have passed their start time');

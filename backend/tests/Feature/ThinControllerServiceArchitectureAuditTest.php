@@ -2,9 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Api\BookingController;
-use App\Http\Controllers\Api\QueueMonitoringController;
-use App\Http\Controllers\AuthController;
 use App\Models\Booking;
 use App\Models\Room;
 use App\Models\User;

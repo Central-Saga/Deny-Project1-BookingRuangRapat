@@ -19,7 +19,7 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
 
     public function test_rule_passes_during_weekday_working_hours(): void
     {
-        $rule = new WithinWorkingHoursRule();
+        $rule = new WithinWorkingHoursRule;
 
         // Senin pukul 09:00 WITA
         $validTime = Carbon::now('Asia/Makassar')->next(Carbon::MONDAY)->setTime(9, 0);
@@ -34,7 +34,7 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
 
     public function test_rule_fails_before_0800_wita(): void
     {
-        $rule = new WithinWorkingHoursRule();
+        $rule = new WithinWorkingHoursRule;
 
         // Senin pukul 07:30 WITA
         $earlyTime = Carbon::now('Asia/Makassar')->next(Carbon::MONDAY)->setTime(7, 30);
@@ -49,7 +49,7 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
 
     public function test_rule_fails_after_1700_wita(): void
     {
-        $rule = new WithinWorkingHoursRule();
+        $rule = new WithinWorkingHoursRule;
 
         // Senin pukul 17:30 WITA
         $lateTime = Carbon::now('Asia/Makassar')->next(Carbon::MONDAY)->setTime(17, 30);
@@ -64,7 +64,7 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
 
     public function test_rule_fails_on_weekends(): void
     {
-        $rule = new WithinWorkingHoursRule();
+        $rule = new WithinWorkingHoursRule;
 
         // Sabtu pukul 10:00 WITA
         $saturday = Carbon::now('Asia/Makassar')->next(Carbon::SATURDAY)->setTime(10, 0);
@@ -87,11 +87,11 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
         $earlyEnd = (clone $earlyStart)->addHour();
 
         $responseEarly = $this->actingAs($user)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Subuh',
+            'room_id' => $room->id,
+            'title' => 'Rapat Subuh',
             'participant_count' => 2,
-            'start_time'        => $earlyStart->toDateTimeString(),
-            'end_time'          => $earlyEnd->toDateTimeString(),
+            'start_time' => $earlyStart->toDateTimeString(),
+            'end_time' => $earlyEnd->toDateTimeString(),
         ]);
 
         $responseEarly->assertStatus(422)
@@ -102,11 +102,11 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
         $workEnd = (clone $workStart)->addHours(2);
 
         $responseSuccess = $this->actingAs($user)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Siang Valid',
+            'room_id' => $room->id,
+            'title' => 'Rapat Siang Valid',
             'participant_count' => 2,
-            'start_time'        => $workStart->toDateTimeString(),
-            'end_time'          => $workEnd->toDateTimeString(),
+            'start_time' => $workStart->toDateTimeString(),
+            'end_time' => $workEnd->toDateTimeString(),
         ]);
 
         $responseSuccess->assertStatus(201)

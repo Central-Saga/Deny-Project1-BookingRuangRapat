@@ -24,7 +24,7 @@ class WithinRoomCapacityRuleAuditTest extends TestCase
 
         Request::merge(['room_id' => $room->id]);
 
-        $rule = new WithinRoomCapacityRule();
+        $rule = new WithinRoomCapacityRule;
 
         $failed = false;
         $rule->validate('participant_count', 8, function () use (&$failed) {
@@ -40,7 +40,7 @@ class WithinRoomCapacityRuleAuditTest extends TestCase
 
         Request::merge(['room_id' => $room->id]);
 
-        $rule = new WithinRoomCapacityRule();
+        $rule = new WithinRoomCapacityRule;
 
         $errorMessage = '';
         $rule->validate('participant_count', 15, function ($message) use (&$errorMessage) {
@@ -60,11 +60,11 @@ class WithinRoomCapacityRuleAuditTest extends TestCase
 
         // 8 participants in a room with capacity 5 -> 422
         $response = $this->actingAs($user)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Peserta Berlebih',
+            'room_id' => $room->id,
+            'title' => 'Rapat Peserta Berlebih',
             'participant_count' => 8,
-            'start_time'        => $startTime->toDateTimeString(),
-            'end_time'          => $endTime->toDateTimeString(),
+            'start_time' => $startTime->toDateTimeString(),
+            'end_time' => $endTime->toDateTimeString(),
         ]);
 
         $response->assertStatus(422)
@@ -85,11 +85,11 @@ class WithinRoomCapacityRuleAuditTest extends TestCase
 
         // 10 participants in a room with capacity 10 -> 201
         $response = $this->actingAs($user)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Kapasitas Maksimal',
+            'room_id' => $room->id,
+            'title' => 'Rapat Kapasitas Maksimal',
             'participant_count' => 10,
-            'start_time'        => $startTime->toDateTimeString(),
-            'end_time'          => $endTime->toDateTimeString(),
+            'start_time' => $startTime->toDateTimeString(),
+            'end_time' => $endTime->toDateTimeString(),
         ]);
 
         $response->assertStatus(201)

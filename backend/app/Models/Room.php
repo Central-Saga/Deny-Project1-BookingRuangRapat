@@ -2,10 +2,24 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property int $capacity
+ * @property string $location
+ * @property array|null $facilities
+ * @property string|null $description
+ * @property bool $is_active
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ */
 class Room extends Model
 {
     use HasFactory, SoftDeletes;
@@ -32,7 +46,7 @@ class Room extends Model
     {
         return [
             'is_active' => 'boolean',
-            'capacity'  => 'integer',
+            'capacity' => 'integer',
             'facilities' => 'array',
         ];
     }
@@ -59,7 +73,10 @@ class Room extends Model
         $this->attributes['capacity'] = $value !== null ? (int) $value : null;
     }
 
-    public function bookings()
+    /**
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
     }

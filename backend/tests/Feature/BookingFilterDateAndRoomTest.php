@@ -24,31 +24,31 @@ class BookingFilterDateAndRoomTest extends TestCase
 
         // Booking on Target Date: 2026-11-25
         $bookingTarget1 = Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $room->id,
-            'title'      => 'Rapat Target 1 Tanggal 25',
+            'user_id' => $admin->id,
+            'room_id' => $room->id,
+            'title' => 'Rapat Target 1 Tanggal 25',
             'start_time' => '2026-11-25 09:00:00',
-            'end_time'   => '2026-11-25 11:00:00',
-            'status'     => 'pending',
+            'end_time' => '2026-11-25 11:00:00',
+            'status' => 'pending',
         ]);
 
         $bookingTarget2 = Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $room->id,
-            'title'      => 'Rapat Target 2 Tanggal 25',
+            'user_id' => $admin->id,
+            'room_id' => $room->id,
+            'title' => 'Rapat Target 2 Tanggal 25',
             'start_time' => '2026-11-25 13:00:00',
-            'end_time'   => '2026-11-25 15:00:00',
-            'status'     => 'approved',
+            'end_time' => '2026-11-25 15:00:00',
+            'status' => 'approved',
         ]);
 
         // Booking on Different Date: 2026-11-26
         Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $room->id,
-            'title'      => 'Rapat Tanggal 26 Lain Hari',
+            'user_id' => $admin->id,
+            'room_id' => $room->id,
+            'title' => 'Rapat Tanggal 26 Lain Hari',
             'start_time' => '2026-11-26 10:00:00',
-            'end_time'   => '2026-11-26 12:00:00',
-            'status'     => 'pending',
+            'end_time' => '2026-11-26 12:00:00',
+            'status' => 'pending',
         ]);
 
         // Request filter date=2026-11-25
@@ -72,21 +72,21 @@ class BookingFilterDateAndRoomTest extends TestCase
         $roomB = Room::factory()->create(['name' => 'Ruang Mawar', 'is_active' => true]);
 
         Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $roomA->id,
-            'title'      => 'Rapat Khusus Ruang Melati',
+            'user_id' => $admin->id,
+            'room_id' => $roomA->id,
+            'title' => 'Rapat Khusus Ruang Melati',
             'start_time' => '2026-11-25 09:00:00',
-            'end_time'   => '2026-11-25 11:00:00',
-            'status'     => 'approved',
+            'end_time' => '2026-11-25 11:00:00',
+            'status' => 'approved',
         ]);
 
         Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $roomB->id,
-            'title'      => 'Rapat Ruang Mawar Lain',
+            'user_id' => $admin->id,
+            'room_id' => $roomB->id,
+            'title' => 'Rapat Ruang Mawar Lain',
             'start_time' => '2026-11-25 09:00:00',
-            'end_time'   => '2026-11-25 11:00:00',
-            'status'     => 'approved',
+            'end_time' => '2026-11-25 11:00:00',
+            'status' => 'approved',
         ]);
 
         // Request filter room_id=RoomA
@@ -109,32 +109,32 @@ class BookingFilterDateAndRoomTest extends TestCase
 
         // Target: Room A + 2026-11-25
         Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $roomA->id,
-            'title'      => 'Rapat Tepat Tanggal 25 dan Ruang Utama',
+            'user_id' => $admin->id,
+            'room_id' => $roomA->id,
+            'title' => 'Rapat Tepat Tanggal 25 dan Ruang Utama',
             'start_time' => '2026-11-25 10:00:00',
-            'end_time'   => '2026-11-25 12:00:00',
-            'status'     => 'pending',
+            'end_time' => '2026-11-25 12:00:00',
+            'status' => 'pending',
         ]);
 
         // Room A on different date 2026-11-26
         Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $roomA->id,
-            'title'      => 'Ruang Utama Tapi Tanggal 26',
+            'user_id' => $admin->id,
+            'room_id' => $roomA->id,
+            'title' => 'Ruang Utama Tapi Tanggal 26',
             'start_time' => '2026-11-26 10:00:00',
-            'end_time'   => '2026-11-26 12:00:00',
-            'status'     => 'pending',
+            'end_time' => '2026-11-26 12:00:00',
+            'status' => 'pending',
         ]);
 
         // Room B on same date 2026-11-25
         Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $roomB->id,
-            'title'      => 'Tanggal 25 Tapi Ruang Cadangan',
+            'user_id' => $admin->id,
+            'room_id' => $roomB->id,
+            'title' => 'Tanggal 25 Tapi Ruang Cadangan',
             'start_time' => '2026-11-25 10:00:00',
-            'end_time'   => '2026-11-25 12:00:00',
-            'status'     => 'pending',
+            'end_time' => '2026-11-25 12:00:00',
+            'status' => 'pending',
         ]);
 
         $response = $this->actingAs($admin)
@@ -153,10 +153,10 @@ class BookingFilterDateAndRoomTest extends TestCase
         $room = Room::factory()->create(['is_active' => true]);
 
         Booking::factory()->create([
-            'user_id'    => $admin->id,
-            'room_id'    => $room->id,
+            'user_id' => $admin->id,
+            'room_id' => $room->id,
             'start_time' => '2026-11-25 10:00:00',
-            'end_time'   => '2026-11-25 12:00:00',
+            'end_time' => '2026-11-25 12:00:00',
         ]);
 
         // Filter date with no bookings

@@ -30,7 +30,7 @@ class ReadmeBootFromScratchAuditTest extends TestCase
             $this->assertGreaterThan(
                 10,
                 count($lines),
-                "File {$name} tidak boleh kosong / harus memiliki lebih dari 10 baris (ditemukan " . count($lines) . " baris)."
+                "File {$name} tidak boleh kosong / harus memiliki lebih dari 10 baris (ditemukan ".count($lines).' baris).'
             );
         }
     }

@@ -26,7 +26,7 @@ class BookingConflictTest extends TestCase
 
         return [
             'start' => $start->setTimezone(config('app.timezone')),
-            'end'   => $end->setTimezone(config('app.timezone')),
+            'end' => $end->setTimezone(config('app.timezone')),
         ];
     }
 
@@ -41,12 +41,12 @@ class BookingConflictTest extends TestCase
         $slot = $this->getNextWorkingSlot(9, 2);
 
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => 'Rapat Perencanaan Proyek',
+            'room_id' => $room->id,
+            'title' => 'Rapat Perencanaan Proyek',
             'participant_count' => 5,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
-            'notes'             => 'Membahas milestone Q4.',
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
+            'notes' => 'Membahas milestone Q4.',
         ];
 
         $response = $this->actingAs($user)->postJson('/api/v1/bookings', $payload);
@@ -60,8 +60,8 @@ class BookingConflictTest extends TestCase
         $this->assertDatabaseHas('bookings', [
             'room_id' => $room->id,
             'user_id' => $user->id,
-            'title'   => 'Rapat Perencanaan Proyek',
-            'status'  => 'pending',
+            'title' => 'Rapat Perencanaan Proyek',
+            'status' => 'pending',
         ]);
     }
 
@@ -77,21 +77,21 @@ class BookingConflictTest extends TestCase
         $slot = $this->getNextWorkingSlot(10, 2);
 
         Booking::create([
-            'user_id'           => $user1->id,
-            'room_id'           => $room->id,
-            'title'             => 'Booking Pertama',
+            'user_id' => $user1->id,
+            'room_id' => $room->id,
+            'title' => 'Booking Pertama',
             'participant_count' => 4,
-            'start_time'        => $slot['start'],
-            'end_time'          => $slot['end'],
-            'status'            => 'pending',
+            'start_time' => $slot['start'],
+            'end_time' => $slot['end'],
+            'status' => 'pending',
         ]);
 
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => 'Booking Kedua Bentrok',
+            'room_id' => $room->id,
+            'title' => 'Booking Kedua Bentrok',
             'participant_count' => 4,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
         ];
 
         $response = $this->actingAs($user2)->postJson('/api/v1/bookings', $payload);
@@ -114,13 +114,13 @@ class BookingConflictTest extends TestCase
         $slot = $this->getNextWorkingSlot(10, 2);
 
         Booking::create([
-            'user_id'           => $user1->id,
-            'room_id'           => $room->id,
-            'title'             => 'Booking 10-12',
+            'user_id' => $user1->id,
+            'room_id' => $room->id,
+            'title' => 'Booking 10-12',
             'participant_count' => 3,
-            'start_time'        => $slot['start'],
-            'end_time'          => $slot['end'],
-            'status'            => 'pending',
+            'start_time' => $slot['start'],
+            'end_time' => $slot['end'],
+            'status' => 'pending',
         ]);
 
         // Request baru: 09:00 - 11:00 (tumpang tindih pada 10:00 - 11:00)
@@ -128,11 +128,11 @@ class BookingConflictTest extends TestCase
         $newEnd = (clone $slot['start'])->addHour();
 
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => 'Booking 09-11 Bentrok',
+            'room_id' => $room->id,
+            'title' => 'Booking 09-11 Bentrok',
             'participant_count' => 3,
-            'start_time'        => $newStart->toDateTimeString(),
-            'end_time'          => $newEnd->toDateTimeString(),
+            'start_time' => $newStart->toDateTimeString(),
+            'end_time' => $newEnd->toDateTimeString(),
         ];
 
         $response = $this->actingAs($user2)->postJson('/api/v1/bookings', $payload);
@@ -155,13 +155,13 @@ class BookingConflictTest extends TestCase
         $slot = $this->getNextWorkingSlot(10, 2);
 
         Booking::create([
-            'user_id'           => $user1->id,
-            'room_id'           => $room->id,
-            'title'             => 'Booking 10-12',
+            'user_id' => $user1->id,
+            'room_id' => $room->id,
+            'title' => 'Booking 10-12',
             'participant_count' => 3,
-            'start_time'        => $slot['start'],
-            'end_time'          => $slot['end'],
-            'status'            => 'pending',
+            'start_time' => $slot['start'],
+            'end_time' => $slot['end'],
+            'status' => 'pending',
         ]);
 
         // Request baru: 11:00 - 13:00 (tumpang tindih pada 11:00 - 12:00)
@@ -169,11 +169,11 @@ class BookingConflictTest extends TestCase
         $newEnd = (clone $slot['end'])->addHour();
 
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => 'Booking 11-13 Bentrok',
+            'room_id' => $room->id,
+            'title' => 'Booking 11-13 Bentrok',
             'participant_count' => 3,
-            'start_time'        => $newStart->toDateTimeString(),
-            'end_time'          => $newEnd->toDateTimeString(),
+            'start_time' => $newStart->toDateTimeString(),
+            'end_time' => $newEnd->toDateTimeString(),
         ];
 
         $response = $this->actingAs($user2)->postJson('/api/v1/bookings', $payload);
@@ -196,13 +196,13 @@ class BookingConflictTest extends TestCase
         $slot = $this->getNextWorkingSlot(11, 1);
 
         Booking::create([
-            'user_id'           => $user1->id,
-            'room_id'           => $room->id,
-            'title'             => 'Booking 11-12',
+            'user_id' => $user1->id,
+            'room_id' => $room->id,
+            'title' => 'Booking 11-12',
             'participant_count' => 3,
-            'start_time'        => $slot['start'],
-            'end_time'          => $slot['end'],
-            'status'            => 'approved',
+            'start_time' => $slot['start'],
+            'end_time' => $slot['end'],
+            'status' => 'approved',
         ]);
 
         // Request baru: 10:00 - 14:00 (melingkupi seluruh slot eksisting)
@@ -210,11 +210,11 @@ class BookingConflictTest extends TestCase
         $newEnd = (clone $slot['end'])->addHours(2);
 
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => 'Booking 10-14 Bentrok Penuh',
+            'room_id' => $room->id,
+            'title' => 'Booking 10-14 Bentrok Penuh',
             'participant_count' => 3,
-            'start_time'        => $newStart->toDateTimeString(),
-            'end_time'          => $newEnd->toDateTimeString(),
+            'start_time' => $newStart->toDateTimeString(),
+            'end_time' => $newEnd->toDateTimeString(),
         ];
 
         $response = $this->actingAs($user2)->postJson('/api/v1/bookings', $payload);
@@ -236,11 +236,11 @@ class BookingConflictTest extends TestCase
 
         // Kasus 1: end_time sama dengan start_time
         $responseEqual = $this->actingAs($user)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Waktu Sama',
+            'room_id' => $room->id,
+            'title' => 'Waktu Sama',
             'participant_count' => 2,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['start']->toDateTimeString(),
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['start']->toDateTimeString(),
         ]);
 
         $responseEqual->assertStatus(422)
@@ -249,11 +249,11 @@ class BookingConflictTest extends TestCase
 
         // Kasus 2: end_time mendahului start_time
         $responseEarlier = $this->actingAs($user)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Waktu Mundur',
+            'room_id' => $room->id,
+            'title' => 'Waktu Mundur',
             'participant_count' => 2,
-            'start_time'        => $slot['end']->toDateTimeString(),
-            'end_time'          => $slot['start']->toDateTimeString(),
+            'start_time' => $slot['end']->toDateTimeString(),
+            'end_time' => $slot['start']->toDateTimeString(),
         ]);
 
         $responseEarlier->assertStatus(422)
@@ -274,13 +274,13 @@ class BookingConflictTest extends TestCase
 
         // Booking 1 dibuat
         $booking = Booking::create([
-            'user_id'           => $user1->id,
-            'room_id'           => $room->id,
-            'title'             => 'Booking yang Dihapus',
+            'user_id' => $user1->id,
+            'room_id' => $room->id,
+            'title' => 'Booking yang Dihapus',
             'participant_count' => 3,
-            'start_time'        => $slot['start'],
-            'end_time'          => $slot['end'],
-            'status'            => 'pending',
+            'start_time' => $slot['start'],
+            'end_time' => $slot['end'],
+            'status' => 'pending',
         ]);
 
         // Lakukan soft delete pada booking 1
@@ -289,11 +289,11 @@ class BookingConflictTest extends TestCase
 
         // User 2 melakukan booking pada slot yang sama persis
         $payload = [
-            'room_id'           => $room->id,
-            'title'             => 'Booking Baru pada Slot Bebas',
+            'room_id' => $room->id,
+            'title' => 'Booking Baru pada Slot Bebas',
             'participant_count' => 3,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
         ];
 
         $response = $this->actingAs($user2)->postJson('/api/v1/bookings', $payload);
@@ -303,9 +303,9 @@ class BookingConflictTest extends TestCase
             ->assertJsonPath('data.title', 'Booking Baru pada Slot Bebas');
 
         $this->assertDatabaseHas('bookings', [
-            'room_id'    => $room->id,
-            'user_id'    => $user2->id,
-            'title'      => 'Booking Baru pada Slot Bebas',
+            'room_id' => $room->id,
+            'user_id' => $user2->id,
+            'title' => 'Booking Baru pada Slot Bebas',
             'deleted_at' => null,
         ]);
     }
@@ -323,22 +323,22 @@ class BookingConflictTest extends TestCase
 
         // Booking berstatus cancelled
         Booking::create([
-            'user_id'           => $user1->id,
-            'room_id'           => $room->id,
-            'title'             => 'Booking Batal',
+            'user_id' => $user1->id,
+            'room_id' => $room->id,
+            'title' => 'Booking Batal',
             'participant_count' => 4,
-            'start_time'        => $slot['start'],
-            'end_time'          => $slot['end'],
-            'status'            => 'cancelled',
+            'start_time' => $slot['start'],
+            'end_time' => $slot['end'],
+            'status' => 'cancelled',
         ]);
 
         // Booking baru pada slot yang sama harus berhasil
         $response = $this->actingAs($user2)->postJson('/api/v1/bookings', [
-            'room_id'           => $room->id,
-            'title'             => 'Booking Sukses Pengganti',
+            'room_id' => $room->id,
+            'title' => 'Booking Sukses Pengganti',
             'participant_count' => 4,
-            'start_time'        => $slot['start']->toDateTimeString(),
-            'end_time'          => $slot['end']->toDateTimeString(),
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
         ]);
 
         $response->assertStatus(201);
@@ -354,7 +354,7 @@ class BookingConflictTest extends TestCase
 
         $booking = Booking::factory()->create([
             'user_id' => $owner->id,
-            'status'  => 'pending',
+            'status' => 'pending',
         ]);
 
         // Karyawan lain mencoba membatalkan booking milik owner -> 403 Forbidden

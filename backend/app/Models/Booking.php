@@ -2,11 +2,34 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property int $room_id
+ * @property string $title
+ * @property int $participant_count
+ * @property Carbon $start_time
+ * @property Carbon $end_time
+ * @property string $status
+ * @property string|null $notes
+ * @property string|null $cancellation_reason
+ * @property string|null $approval_notes
+ * @property int|null $approved_by
+ * @property Carbon|null $decided_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read User $user
+ * @property-read Room $room
+ * @property-read User|null $approver
+ */
 class Booking extends Model
 {
     use HasFactory, SoftDeletes;
@@ -32,7 +55,7 @@ class Booking extends Model
      */
     protected $casts = [
         'start_time' => 'datetime',
-        'end_time'   => 'datetime',
+        'end_time' => 'datetime',
         'created_at' => 'datetime',
         'decided_at' => 'datetime',
         'participant_count' => 'integer',
@@ -42,7 +65,7 @@ class Booking extends Model
     {
         return [
             'start_time' => 'datetime',
-            'end_time'   => 'datetime',
+            'end_time' => 'datetime',
             'created_at' => 'datetime',
             'decided_at' => 'datetime',
             'participant_count' => 'integer',
@@ -103,19 +126,27 @@ class Booking extends Model
         );
     }
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function room()
+    /**
+     * @return BelongsTo<Room, $this>
+     */
+    public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
     }
 
-    public function approver()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 }
-

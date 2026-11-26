@@ -29,7 +29,7 @@ class EmployeeCannotCancelAdminBookingTest extends TestCase
 
         return [
             'start' => $start,
-            'end'   => $end,
+            'end' => $end,
         ];
     }
 
@@ -54,13 +54,13 @@ class EmployeeCannotCancelAdminBookingTest extends TestCase
 
         // Rapat pimpinan dibuat oleh admin
         $adminMeeting = Booking::factory()->create([
-            'user_id'             => $admin->id,
-            'room_id'             => $room->id,
-            'title'               => 'Rapat Strategis Dewan Pimpinan & Direksi',
-            'participant_count'   => 10,
-            'start_time'          => $slot['start']->toDateTimeString(),
-            'end_time'            => $slot['end']->toDateTimeString(),
-            'status'              => 'approved',
+            'user_id' => $admin->id,
+            'room_id' => $room->id,
+            'title' => 'Rapat Strategis Dewan Pimpinan & Direksi',
+            'participant_count' => 10,
+            'start_time' => $slot['start']->toDateTimeString(),
+            'end_time' => $slot['end']->toDateTimeString(),
+            'status' => 'approved',
             'cancellation_reason' => null,
         ]);
 
@@ -98,9 +98,9 @@ class EmployeeCannotCancelAdminBookingTest extends TestCase
         $employee = User::factory()->create(['role' => 'karyawan']);
 
         $pendingMeeting = Booking::factory()->create([
-            'user_id'             => $admin->id,
-            'title'               => 'Rapat Evaluasi Triwulan Pimpinan (Pending)',
-            'status'              => 'pending',
+            'user_id' => $admin->id,
+            'title' => 'Rapat Evaluasi Triwulan Pimpinan (Pending)',
+            'status' => 'pending',
             'cancellation_reason' => null,
         ]);
 
@@ -126,9 +126,9 @@ class EmployeeCannotCancelAdminBookingTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
 
         $adminMeeting = Booking::factory()->create([
-            'user_id'             => $admin->id,
-            'title'               => 'Rapat Pimpinan yang Dibatalkan Resmi',
-            'status'              => 'pending',
+            'user_id' => $admin->id,
+            'title' => 'Rapat Pimpinan yang Dibatalkan Resmi',
+            'status' => 'pending',
             'cancellation_reason' => null,
         ]);
 

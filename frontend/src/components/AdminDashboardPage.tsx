@@ -209,8 +209,8 @@ export default function AdminDashboardPage({ user }: { user: User }) {
 
 function Modal({ title, icon, tone = 'amber', onClose, children }: { title: string; icon: keyof typeof iconPaths; tone?: 'amber' | 'rose'; onClose: () => void; children: React.ReactNode }) {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md animate-in fade-in duration-200">
-            <div role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" className="w-full max-w-md rounded-3xl border border-emerald-800 bg-[#0d2822] p-7 shadow-2xl shadow-black/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}>
+            <div role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" className="w-full max-w-md rounded-3xl border border-emerald-800 bg-[#0d2822] p-7 shadow-2xl shadow-black/60" onClick={(e) => e.stopPropagation()}>
                 <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl ${tone === 'rose' ? 'bg-rose-500/20 text-rose-400' : 'bg-[#f57c00]/20 text-[#f59e0b]'}`}>
                     <Icon name={icon} className="h-6 w-6" />
                 </div>

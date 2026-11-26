@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bookings', function (Blueprint $table): void {
-            if (!Schema::hasColumn('bookings', 'participant_count')) {
+            if (! Schema::hasColumn('bookings', 'participant_count')) {
                 $table->unsignedInteger('participant_count')->default(1)->after('title');
             }
 
-            if (!Schema::hasColumn('bookings', 'cancellation_reason')) {
+            if (! Schema::hasColumn('bookings', 'cancellation_reason')) {
                 $table->string('cancellation_reason')->nullable()->after('notes');
             }
 
@@ -28,4 +28,4 @@ return new class extends Migration
             $table->dropColumn(['participant_count', 'cancellation_reason']);
         });
     }
-}; 
+};

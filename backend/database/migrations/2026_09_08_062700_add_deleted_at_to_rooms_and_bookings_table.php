@@ -11,13 +11,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('rooms') && !Schema::hasColumn('rooms', 'deleted_at')) {
+        if (Schema::hasTable('rooms') && ! Schema::hasColumn('rooms', 'deleted_at')) {
             Schema::table('rooms', function (Blueprint $table) {
                 $table->softDeletes();
             });
         }
 
-        if (Schema::hasTable('bookings') && !Schema::hasColumn('bookings', 'deleted_at')) {
+        if (Schema::hasTable('bookings') && ! Schema::hasColumn('bookings', 'deleted_at')) {
             Schema::table('bookings', function (Blueprint $table) {
                 $table->softDeletes();
             });

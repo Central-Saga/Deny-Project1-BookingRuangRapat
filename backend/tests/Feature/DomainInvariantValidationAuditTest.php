@@ -151,7 +151,7 @@ class DomainInvariantValidationAuditTest extends TestCase
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage('Kapasitas ruangan harus minimal 1 orang dan tidak boleh negatif.');
 
-        $room = new Room();
+        $room = new Room;
         $room->name = 'Direct Domain Test';
         $room->location = 'Lantai 3';
         $room->capacity = -5;
@@ -168,7 +168,7 @@ class DomainInvariantValidationAuditTest extends TestCase
         $this->expectException(HttpException::class);
         $this->expectExceptionMessage('Jumlah peserta rapat harus minimal 1 orang dan tidak boleh negatif.');
 
-        $booking = new Booking();
+        $booking = new Booking;
         $booking->user_id = $employee->id;
         $booking->room_id = $room->id;
         $booking->title = 'Direct Domain Booking Test';

@@ -20,7 +20,7 @@ class WithinWorkingHoursRule implements ValidationRule
         $date = is_string($value) ? now()->parse($value) : $value;
         $date = $date?->clone()->setTimezone(self::TIMEZONE);
 
-        if (!$date || $date->isWeekend() || $date->format('H:i') < '08:00' || $date->format('H:i') > '17:00') {
+        if (! $date || $date->isWeekend() || $date->format('H:i') < '08:00' || $date->format('H:i') > '17:00') {
             $fail('Pemesanan hanya dapat dilakukan pada hari kerja pukul 08:00 sampai 17:00 WITA.');
         }
     }

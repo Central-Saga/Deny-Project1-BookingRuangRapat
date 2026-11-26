@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Booking;
 use App\Models\Room;
 use App\Models\User;
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -38,7 +37,7 @@ class RoomBookingSoftDeletesAndCastsTest extends TestCase
 
     public function test_room_model_has_required_explicit_casts(): void
     {
-        $room = new Room();
+        $room = new Room;
         $casts = $room->getCasts();
 
         $this->assertArrayHasKey('is_active', $casts);
@@ -49,7 +48,7 @@ class RoomBookingSoftDeletesAndCastsTest extends TestCase
 
         $savedRoom = Room::factory()->create([
             'is_active' => 1,
-            'capacity'  => '20',
+            'capacity' => '20',
         ]);
 
         $this->assertIsBool($savedRoom->is_active);
@@ -60,7 +59,7 @@ class RoomBookingSoftDeletesAndCastsTest extends TestCase
 
     public function test_booking_model_has_required_explicit_casts(): void
     {
-        $booking = new Booking();
+        $booking = new Booking;
         $casts = $booking->getCasts();
 
         $this->assertArrayHasKey('start_time', $casts);
@@ -76,10 +75,10 @@ class RoomBookingSoftDeletesAndCastsTest extends TestCase
         $room = Room::factory()->create();
 
         $savedBooking = Booking::factory()->create([
-            'user_id'    => $user->id,
-            'room_id'    => $room->id,
+            'user_id' => $user->id,
+            'room_id' => $room->id,
             'start_time' => '2026-11-20 09:00:00',
-            'end_time'   => '2026-11-20 11:00:00',
+            'end_time' => '2026-11-20 11:00:00',
         ]);
 
         $this->assertInstanceOf(CarbonInterface::class, $savedBooking->start_time);
@@ -90,7 +89,7 @@ class RoomBookingSoftDeletesAndCastsTest extends TestCase
     public function test_room_soft_delete_and_restore_queries(): void
     {
         $room = Room::factory()->create([
-            'name'      => 'Ruang Rapat Garuda',
+            'name' => 'Ruang Rapat Garuda',
             'is_active' => true,
         ]);
 
@@ -134,11 +133,11 @@ class RoomBookingSoftDeletesAndCastsTest extends TestCase
         $room = Room::factory()->create();
 
         $booking = Booking::factory()->create([
-            'user_id'    => $user->id,
-            'room_id'    => $room->id,
-            'title'      => 'Rapat Proyek Internal',
+            'user_id' => $user->id,
+            'room_id' => $room->id,
+            'title' => 'Rapat Proyek Internal',
             'start_time' => now()->nextWeekday()->setTime(9, 0),
-            'end_time'   => now()->nextWeekday()->setTime(11, 0),
+            'end_time' => now()->nextWeekday()->setTime(11, 0),
         ]);
 
         $this->assertNull($booking->deleted_at);

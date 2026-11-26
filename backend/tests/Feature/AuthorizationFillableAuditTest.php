@@ -17,9 +17,9 @@ class AuthorizationFillableAuditTest extends TestCase
         $sensitiveColumns = ['role', 'is_admin', 'balance', 'tenant_id'];
 
         $models = [
-            User::class => new User(),
-            Booking::class => new Booking(),
-            Room::class => new Room(),
+            User::class => new User,
+            Booking::class => new Booking,
+            Room::class => new Room,
         ];
 
         $fillableCount = 0;

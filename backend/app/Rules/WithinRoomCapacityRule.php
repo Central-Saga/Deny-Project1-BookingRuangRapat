@@ -18,7 +18,7 @@ class WithinRoomCapacityRule implements ValidationRule
         $roomId = request()->input('room_id');
         $room = $roomId ? Room::whereKey($roomId)->where('is_active', true)->first() : null;
 
-        if (!$room || (int) $value > $room->capacity) {
+        if (! $room || (int) $value > $room->capacity) {
             $fail('Jumlah peserta melebihi kapasitas ruangan yang dipilih.');
         }
     }
