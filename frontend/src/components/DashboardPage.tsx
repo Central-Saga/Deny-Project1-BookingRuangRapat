@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { cancelBooking, clearToken, createBooking, deleteBooking, getAvailability, getBookings, getCurrentUser, getRooms, getToken, hasToken, login, logout, saveToken, updateBooking } from '@/services/api';
+import { cancelBooking, clearToken, createBooking, deleteBooking, getAvailability, getBookings, getCurrentUser, getRooms, getToken, hasToken, login, logout, saveToken, updateBooking } from '@/api';
 import { Booking, Room, User } from '@/types';
 import { bookingSchema } from '@/lib/validations/bookingSchema';
 import BookingCalendar from '@/components/BookingCalendar';

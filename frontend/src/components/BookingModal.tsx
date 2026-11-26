@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createBooking, updateBooking } from '@/services/api';
+import { createBooking, updateBooking } from '@/api';
 import { bookingSchema, BookingFormValues } from '@/lib/validations/bookingSchema';
 import { Booking, Room } from '@/types';
 
