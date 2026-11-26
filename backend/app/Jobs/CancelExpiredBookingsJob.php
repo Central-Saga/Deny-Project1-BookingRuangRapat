@@ -35,26 +35,26 @@ class CancelExpiredBookingsJob implements ShouldBeUnique, ShouldQueue
     public function handle(): int
     {
         $now = now();
-        $expiredBookings = Booking::where('status', 'pending')
-            ->where('start_time', '<=', $now)
-            ->get();
-
         $cancelledCount = 0;
-        foreach ($expiredBookings as $booking) {
-            $dedupKey = "booking_auto_cancelled_{$booking->id}";
-            if (Cache::has($dedupKey)) {
-                continue;
-            }
 
-            Cache::put($dedupKey, true, 86400);
+        Booking::where('status', 'pending')
+            ->where('start_time', '<=', $now)
+            ->cursor()
+            ->each(function (Booking $booking) use ($now, &$cancelledCount): void {
+                $dedupKey = "booking_auto_cancelled_{$booking->id}";
+                if (Cache::has($dedupKey)) {
+                    return;
+                }
 
-            $booking->update([
-                'status' => 'cancelled',
-                'decided_at' => $now,
-            ]);
+                Cache::put($dedupKey, true, 86400);
 
-            $cancelledCount++;
-        }
+                $booking->update([
+                    'status' => 'cancelled',
+                    'decided_at' => $now,
+                ]);
+
+                $cancelledCount++;
+            });
 
         Log::info("CancelExpiredBookingsJob processed: {$cancelledCount} booking(s) cancelled.");
 
