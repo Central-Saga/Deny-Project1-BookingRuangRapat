@@ -65,7 +65,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/queue/dashboard', [QueueMonitoringController::class, 'dashboard']);
         Route::get('/queue/failed-jobs', [QueueMonitoringController::class, 'failedJobs']);
-        Route::get('/admin/queue/failed-jobs', [QueueMonitoringController::class, 'failedJobs']);
         Route::post('/queue/failed-jobs/retry-all', [QueueMonitoringController::class, 'retryAll']);
         Route::post('/queue/failed-jobs/{id}/retry', [QueueMonitoringController::class, 'retryJob']);
         Route::delete('/queue/failed-jobs/{id}', [QueueMonitoringController::class, 'deleteJob']);

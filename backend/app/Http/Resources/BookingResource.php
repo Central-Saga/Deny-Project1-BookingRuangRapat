@@ -17,7 +17,7 @@ class BookingResource extends JsonResource
             'id' => $this->id,
             'room_id' => $this->room_id,
             'user' => $this->whenLoaded('user'),
-            'room' => new RoomResource($this->whenLoaded('room')),
+            'room' => $this->whenLoaded('room', fn () => new RoomResource($this->room)),
             'title' => $this->title,
             'participant_count' => $this->participant_count,
             'start_time' => $this->start_time,
