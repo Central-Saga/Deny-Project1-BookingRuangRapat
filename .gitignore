@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Allow safe environment templates
 !.env.example
+!backend/.env.example
+!.env.testing
+!backend/.env.testing
