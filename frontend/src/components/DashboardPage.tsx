@@ -3,12 +3,24 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { cancelBooking, clearToken, createBooking, deleteBooking, getAvailability, getBookings, getCurrentUser, getRooms, getToken, hasToken, login, logout, saveToken, updateBooking } from '@/api';
 import { Booking, Room, User } from '@/types';
 import { bookingSchema } from '@/lib/validations/bookingSchema';
-import BookingCalendar from '@/components/BookingCalendar';
-import BookingModal from '@/components/BookingModal';
-import AdminDashboardPage from './AdminDashboardPage';
+
+const BookingCalendar = dynamic(() => import('@/components/BookingCalendar'), {
+    ssr: false,
+    loading: () => <div className="p-6 text-center text-emerald-300">Memuat kalender jadwal...</div>,
+});
+
+const BookingModal = dynamic(() => import('@/components/BookingModal'), {
+    ssr: false,
+});
+
+const AdminDashboardPage = dynamic(() => import('./AdminDashboardPage'), {
+    ssr: false,
+    loading: () => <div className="p-8 text-center text-white">Memuat antarmuka admin...</div>,
+});
 
 const OPERATING_START_MINUTES = 8 * 60;
 const OPERATING_END_MINUTES = 17 * 60;
