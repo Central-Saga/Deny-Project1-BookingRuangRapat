@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CookieBearerTokenMiddleware;
+use App\Http\Middleware\IdempotencyMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -23,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeadersMiddleware::class);
         $middleware->prependToGroup('api', CookieBearerTokenMiddleware::class);
         $middleware->prependToGroup('web', CookieBearerTokenMiddleware::class);
+        $middleware->appendToGroup('api', IdempotencyMiddleware::class);
+        $middleware->alias([
+            'idempotent' => IdempotencyMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /**

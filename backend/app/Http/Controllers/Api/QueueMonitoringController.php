@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\QueueMonitoringService;
+use App\Services\Contracts\QueueMonitoringServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 class QueueMonitoringController extends Controller
 {
     public function __construct(
-        protected QueueMonitoringService $queueService
+        protected QueueMonitoringServiceInterface $queueService
     ) {}
 
     public function dashboard(Request $request): JsonResponse

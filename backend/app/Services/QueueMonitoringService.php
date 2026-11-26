@@ -2,83 +2,118 @@
 
 namespace App\Services;
 
+use App\Services\Contracts\QueueMonitoringServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
- * Service Layer untuk Monitoring Queue dan Job Background.
- * Memisahkan logika query, eksekusi command Artisan, dan caching dari Controller.
+ * Service Layer untuk Monitoring dan Manajemen Queue / Background Jobs.
  */
-class QueueMonitoringService
+class QueueMonitoringService implements QueueMonitoringServiceInterface
 {
     /**
-     * Mengambil metrik antrean dan status dengan caching.
+     * Mengambil statistik antrean (jobs, failed, pending).
+     *
+     * @return array<string, mixed>
      */
-    public function getDashboardMetrics(): array
+    public function getQueueStats(): array
     {
         return Cache::remember('queue_dashboard_metrics', 10, function (): array {
-            $pendingJobs = Schema::hasTable('jobs') ? DB::table('jobs')->count() : 0;
-            $failedJobs = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0;
+            $pendingJobs = DB::table('jobs')->count();
+            $failedJobs = DB::table('failed_jobs')->count();
 
             return [
                 'connection' => config('queue.default'),
                 'pending_jobs' => $pendingJobs,
                 'failed_jobs' => $failedJobs,
+                'total_jobs' => $pendingJobs + $failedJobs,
                 'status' => $failedJobs > 0 ? 'warning' : 'healthy',
                 'prune_configured' => true,
                 'scheduler_active' => true,
+                'checked_at' => now()->toIso8601String(),
             ];
         });
     }
 
     /**
-     * Mengambil daftar failed jobs dengan paginasi.
+     * Alias untuk metrik dashboard antrean.
+     *
+     * @return array<string, mixed>
      */
-    public function getFailedJobs(int $perPage = 25): LengthAwarePaginator
+    public function getDashboardMetrics(): array
     {
-        $query = Schema::hasTable('failed_jobs')
-            ? DB::table('failed_jobs')->orderByDesc('failed_at')
-            : DB::table('failed_jobs')->whereRaw('1 = 0');
-
-        return $query->paginate($perPage);
+        return $this->getQueueStats();
     }
 
     /**
-     * Me-retry job tertentu berdasarkan ID.
+     * Mengambil daftar failed jobs dengan pagination.
      */
-    public function retryJob(string|int $id): void
+    public function getFailedJobs(int $perPage = 15): LengthAwarePaginator
     {
-        Artisan::call('queue:retry', ['id' => [$id]]);
-        Cache::forget('queue_dashboard_metrics');
+        return DB::table('failed_jobs')
+            ->orderByDesc('failed_at')
+            ->paginate($perPage);
     }
 
     /**
      * Me-retry semua failed jobs.
      */
-    public function retryAll(): void
+    public function retryAllFailedJobs(): void
     {
         Artisan::call('queue:retry', ['id' => ['all']]);
-        Cache::forget('queue_dashboard_metrics');
+        Cache::forget('queue_stats_summary');
     }
 
-    /**
-     * Menghapus failed job tertentu berdasarkan ID.
-     */
-    public function deleteJob(string|int $id): void
+    public function retryAll(): void
     {
-        Artisan::call('queue:forget', ['id' => $id]);
-        Cache::forget('queue_dashboard_metrics');
+        $this->retryAllFailedJobs();
     }
 
     /**
-     * Menghapus seluruh failed jobs.
+     * Me-retry failed job berdasarkan ID.
      */
-    public function flush(): void
+    public function retryFailedJob(int|string $id): bool
+    {
+        $exitCode = Artisan::call('queue:retry', ['id' => [(string) $id]]);
+        Cache::forget('queue_stats_summary');
+
+        return $exitCode === 0;
+    }
+
+    public function retryJob(int|string $id): bool
+    {
+        return $this->retryFailedJob($id);
+    }
+
+    /**
+     * Menghapus failed job berdasarkan ID.
+     */
+    public function deleteFailedJob(int|string $id): bool
+    {
+        $exitCode = Artisan::call('queue:forget', ['id' => (string) $id]);
+        Cache::forget('queue_stats_summary');
+
+        return $exitCode === 0;
+    }
+
+    public function deleteJob(int|string $id): bool
+    {
+        return $this->deleteFailedJob($id);
+    }
+
+    /**
+     * Menghapus semua failed jobs.
+     */
+    public function flushFailedJobs(): void
     {
         Artisan::call('queue:flush');
-        Cache::forget('queue_dashboard_metrics');
+        Cache::forget('queue_stats_summary');
+    }
+
+    public function flush(): void
+    {
+        $this->flushFailedJobs();
     }
 }

@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\DTOs\CreateBookingDTO;
+use App\DTOs\UpdateBookingDTO;
 use App\Jobs\SendBookingNotification;
 use App\Models\Booking;
 use App\Models\Room;
 use App\Models\User;
+use App\Services\Contracts\BookingServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +18,7 @@ use Illuminate\Support\Facades\DB;
  * Mengenkapsulasi seluruh logika bisnis transaksi booking, pessimistic locking,
  * query database, caching ketersediaan, dan dispatch notifikasi antrean.
  */
-class BookingService
+class BookingService implements BookingServiceInterface
 {
     /**
      * Mengambil daftar booking dengan filter per user, tanggal, dan ruangan.
@@ -42,15 +45,17 @@ class BookingService
     /**
      * Membuat booking baru dengan transaksi dan pessimistic locking (Audit Param 37).
      */
-    public function createBooking(User $user, array $data): Booking
+    public function createBooking(User $user, CreateBookingDTO|array $data): Booking
     {
-        $booking = DB::transaction(function () use ($user, $data): Booking {
-            Room::whereKey($data['room_id'])->where('is_active', true)->lockForUpdate()->firstOrFail();
+        $payload = $data instanceof CreateBookingDTO ? $data->toArray() : $data;
 
-            $isConflict = Booking::where('room_id', $data['room_id'])
+        $booking = DB::transaction(function () use ($user, $payload): Booking {
+            Room::whereKey($payload['room_id'])->where('is_active', true)->lockForUpdate()->firstOrFail();
+
+            $isConflict = Booking::where('room_id', $payload['room_id'])
                 ->whereNotIn('status', ['rejected', 'cancelled'])
-                ->where('start_time', '<', $data['end_time'])
-                ->where('end_time', '>', $data['start_time'])
+                ->where('start_time', '<', $payload['end_time'])
+                ->where('end_time', '>', $payload['start_time'])
                 ->lockForUpdate()
                 ->exists();
 
@@ -60,13 +65,13 @@ class BookingService
 
             return Booking::create([
                 'user_id' => $user->id,
-                'room_id' => $data['room_id'],
-                'title' => strip_tags($data['title']),
-                'participant_count' => $data['participant_count'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
+                'room_id' => $payload['room_id'],
+                'title' => strip_tags($payload['title']),
+                'participant_count' => $payload['participant_count'],
+                'start_time' => $payload['start_time'],
+                'end_time' => $payload['end_time'],
                 'status' => 'pending',
-                'notes' => isset($data['notes']) ? strip_tags($data['notes']) : null,
+                'notes' => isset($payload['notes']) ? strip_tags($payload['notes']) : null,
             ]);
         });
 
@@ -94,17 +99,19 @@ class BookingService
     }
 
     /**
-     * Menyetujui booking oleh administrator.
+     * Menyetujui booking oleh administrator dalam transaksi DB.
      */
     public function approveBooking(Booking $booking, int $approverId): Booking
     {
         abort_unless($booking->status === 'pending', 422, 'Booking ini sudah diproses.');
 
-        $booking->update([
-            'status' => 'approved',
-            'approved_by' => $approverId,
-            'decided_at' => now(),
-        ]);
+        DB::transaction(function () use ($booking, $approverId): void {
+            $booking->update([
+                'status' => 'approved',
+                'approved_by' => $approverId,
+                'decided_at' => now(),
+            ]);
+        });
 
         SendBookingNotification::dispatch($booking->id, 'approved');
         Cache::forget('booking_availability');
@@ -113,18 +120,20 @@ class BookingService
     }
 
     /**
-     * Menolak booking oleh administrator dengan catatan alasan penolakan.
+     * Menolak booking oleh administrator dengan catatan alasan penolakan dalam transaksi DB.
      */
     public function rejectBooking(Booking $booking, int $approverId, string $notes): Booking
     {
         abort_unless($booking->status === 'pending', 422, 'Booking ini sudah diproses.');
 
-        $booking->update([
-            'status' => 'rejected',
-            'approval_notes' => strip_tags($notes),
-            'approved_by' => $approverId,
-            'decided_at' => now(),
-        ]);
+        DB::transaction(function () use ($booking, $approverId, $notes): void {
+            $booking->update([
+                'status' => 'rejected',
+                'approval_notes' => strip_tags($notes),
+                'approved_by' => $approverId,
+                'decided_at' => now(),
+            ]);
+        });
 
         SendBookingNotification::dispatch($booking->id, 'rejected');
         Cache::forget('booking_availability');
@@ -133,20 +142,22 @@ class BookingService
     }
 
     /**
-     * Memperbarui data booking dengan pessimistic locking.
+     * Memperbarui data booking dengan pessimistic locking dalam transaksi DB.
      */
-    public function updateBooking(Booking $booking, array $data): Booking
+    public function updateBooking(Booking $booking, UpdateBookingDTO|array $data): Booking
     {
         abort_if(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking yang sudah dibatalkan atau ditolak tidak dapat diedit.');
 
-        DB::transaction(function () use ($booking, $data): void {
-            Room::whereKey($data['room_id'])->where('is_active', true)->lockForUpdate()->firstOrFail();
+        $payload = $data instanceof UpdateBookingDTO ? $data->toArray() : $data;
 
-            $isConflict = Booking::where('room_id', $data['room_id'])
+        DB::transaction(function () use ($booking, $payload): void {
+            Room::whereKey($payload['room_id'])->where('is_active', true)->lockForUpdate()->firstOrFail();
+
+            $isConflict = Booking::where('room_id', $payload['room_id'])
                 ->where('id', '<>', $booking->id)
                 ->whereNotIn('status', ['rejected', 'cancelled'])
-                ->where('start_time', '<', $data['end_time'])
-                ->where('end_time', '>', $data['start_time'])
+                ->where('start_time', '<', $payload['end_time'])
+                ->where('end_time', '>', $payload['start_time'])
                 ->lockForUpdate()
                 ->exists();
 
@@ -155,12 +166,12 @@ class BookingService
             }
 
             $booking->update([
-                'room_id' => $data['room_id'],
-                'title' => strip_tags($data['title']),
-                'participant_count' => $data['participant_count'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'notes' => isset($data['notes']) ? strip_tags($data['notes']) : null,
+                'room_id' => $payload['room_id'],
+                'title' => strip_tags($payload['title']),
+                'participant_count' => $payload['participant_count'],
+                'start_time' => $payload['start_time'],
+                'end_time' => $payload['end_time'],
+                'notes' => isset($payload['notes']) ? strip_tags($payload['notes']) : null,
                 'status' => 'pending',
                 'approved_by' => null,
                 'decided_at' => null,
@@ -174,16 +185,18 @@ class BookingService
     }
 
     /**
-     * Membatalkan booking dengan catatan alasan pembatalan.
+     * Membatalkan booking dengan catatan alasan pembatalan dalam transaksi DB.
      */
     public function cancelBooking(Booking $booking, string $reason): Booking
     {
         abort_if(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking ini sudah dibatalkan atau ditolak.');
 
-        $booking->update([
-            'status' => 'cancelled',
-            'cancellation_reason' => strip_tags($reason),
-        ]);
+        DB::transaction(function () use ($booking, $reason): void {
+            $booking->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => strip_tags($reason),
+            ]);
+        });
 
         SendBookingNotification::dispatch($booking->id, 'cancelled');
         Cache::forget('booking_availability');
@@ -192,13 +205,16 @@ class BookingService
     }
 
     /**
-     * Menghapus booking secara permanen/soft delete setelah dibatalkan/ditolak.
+     * Menghapus booking secara permanen/soft delete setelah dibatalkan/ditolak dalam transaksi DB.
      */
     public function deleteBooking(Booking $booking): void
     {
         abort_unless(in_array($booking->status, ['rejected', 'cancelled'], true), 422, 'Booking harus dibatalkan atau ditolak terlebih dahulu sebelum dihapus.');
 
-        $booking->delete();
+        DB::transaction(function () use ($booking): void {
+            $booking->delete();
+        });
+
         Cache::forget('booking_availability');
     }
 

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\DTOs\CreateBookingDTO;
+use App\DTOs\UpdateBookingDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CancelBookingRequest;
 use App\Http\Requests\RejectBookingRequest;
@@ -9,13 +11,15 @@ use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
-use App\Services\BookingService;
+use App\Services\Contracts\BookingServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class BookingController extends Controller
 {
-    public function __construct(protected BookingService $bookingService) {}
+    public function __construct(
+        protected BookingServiceInterface $bookingService
+    ) {}
 
     public function index(Request $request)
     {
@@ -32,7 +36,8 @@ class BookingController extends Controller
 
     public function store(StoreBookingRequest $request)
     {
-        $booking = $this->bookingService->createBooking($request->user(), $request->validated());
+        $dto = CreateBookingDTO::fromRequest($request);
+        $booking = $this->bookingService->createBooking($request->user(), $dto);
 
         return (new BookingResource($booking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
@@ -64,7 +69,8 @@ class BookingController extends Controller
     public function update(UpdateBookingRequest $request, Booking $booking)
     {
         Gate::authorize('update', $booking);
-        $updatedBooking = $this->bookingService->updateBooking($booking, $request->validated());
+        $dto = UpdateBookingDTO::fromRequest($request);
+        $updatedBooking = $this->bookingService->updateBooking($booking, $dto);
 
         return (new BookingResource($updatedBooking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
