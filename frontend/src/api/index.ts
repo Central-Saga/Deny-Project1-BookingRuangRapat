@@ -7,8 +7,10 @@ import { Booking, Room, User } from '@/types';
 import {
     apiClient,
     API_URL,
+    ApiError,
     authHeaders,
     clearToken,
+    extractFieldErrors,
     getAllPages,
     getErrorMessage,
     getToken,
@@ -29,9 +31,11 @@ import {
 export {
     apiClient,
     API_URL,
+    ApiError,
     authHeaders,
     clearApiCache,
     clearToken,
+    extractFieldErrors,
     getApiCache,
     getErrorMessage,
     getToken,
@@ -59,6 +63,13 @@ function unwrapResponse<T>(payload: DataEnvelope<T> | T): T {
     return payload;
 }
 
+function rethrowError(err: unknown, fallback: string): never {
+    if (err instanceof ApiError) {
+        throw err;
+    }
+    throw new Error(err instanceof Error ? err.message : fallback);
+}
+
 // ==========================================
 // Authentication
 // ==========================================
@@ -69,9 +80,7 @@ export async function login(email: string, password: string): Promise<{ token: s
         skipAuth: true,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
-    }).catch((err) => {
-        throw new Error(err.message || 'Email atau password salah');
-    });
+    }).catch((err) => rethrowError(err, 'Email atau password salah'));
 }
 
 export async function getCurrentUser(): Promise<User> {
@@ -79,9 +88,7 @@ export async function getCurrentUser(): Promise<User> {
         method: 'GET',
         useCache: true,
         cacheTtlMs: 30000,
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal memeriksa sesi login.');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal memeriksa sesi login.'));
 }
 
 export async function logout(): Promise<void> {
@@ -119,9 +126,7 @@ export async function createRoom(payload: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         cacheTag: 'rooms',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal menambahkan ruangan');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal menambahkan ruangan'));
     return unwrapResponse(data);
 }
 
@@ -141,9 +146,7 @@ export async function updateRoom(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         cacheTag: 'rooms',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal memperbarui ruangan');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal memperbarui ruangan'));
     return unwrapResponse(data);
 }
 
@@ -151,9 +154,7 @@ export async function deleteRoom(id: number): Promise<void> {
     await apiClient(`/v1/rooms/${id}`, {
         method: 'DELETE',
         cacheTag: 'rooms',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal menonaktifkan ruangan');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal menonaktifkan ruangan'));
 }
 
 // ==========================================
@@ -181,9 +182,7 @@ export async function createBooking(payload: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         cacheTag: 'bookings',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal membuat pemesanan');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal membuat pemesanan'));
     invalidateApiCache('availability');
     return unwrapResponse(data);
 }
@@ -204,9 +203,7 @@ export async function updateBooking(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         cacheTag: 'bookings',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal memperbarui pemesanan');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal memperbarui pemesanan'));
     invalidateApiCache('availability');
     return unwrapResponse(data);
 }
@@ -215,9 +212,7 @@ export async function approveBooking(id: number): Promise<Booking> {
     const data = await apiClient<DataEnvelope<Booking> | Booking>(`/v1/bookings/${id}/approve`, {
         method: 'PATCH',
         cacheTag: 'bookings',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal menyetujui booking');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal menyetujui booking'));
     invalidateApiCache('availability');
     return unwrapResponse(data);
 }
@@ -228,9 +223,7 @@ export async function rejectBooking(id: number, approval_notes: string): Promise
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approval_notes }),
         cacheTag: 'bookings',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal menolak booking');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal menolak booking'));
     invalidateApiCache('availability');
     return unwrapResponse(data);
 }
@@ -241,9 +234,7 @@ export async function cancelBooking(id: number, cancellation_reason: string): Pr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cancellation_reason }),
         cacheTag: 'bookings',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal membatalkan pemesanan');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal membatalkan pemesanan'));
     invalidateApiCache('availability');
 }
 
@@ -251,9 +242,7 @@ export async function deleteBooking(id: number): Promise<void> {
     await apiClient(`/v1/bookings/${id}`, {
         method: 'DELETE',
         cacheTag: 'bookings',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal menghapus pemesanan');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal menghapus pemesanan'));
     invalidateApiCache('availability');
 }
 
@@ -277,9 +266,7 @@ export async function createUser(payload: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         cacheTag: 'users',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal membuat akun pengguna');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal membuat akun pengguna'));
     return unwrapResponse(data);
 }
 
@@ -292,8 +279,6 @@ export async function updateUser(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         cacheTag: 'users',
-    }).catch((err) => {
-        throw new Error(err.message || 'Gagal memperbarui pengguna');
-    });
+    }).catch((err) => rethrowError(err, 'Gagal memperbarui pengguna'));
     return unwrapResponse(data);
 }

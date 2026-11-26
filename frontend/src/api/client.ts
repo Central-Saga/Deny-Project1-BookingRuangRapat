@@ -86,6 +86,73 @@ export interface ApiErrorEnvelope {
     errors?: ApiErrorItem[] | Record<string, string[] | string>;
 }
 
+export class ApiError extends Error {
+    public status: number;
+    public fieldErrors: Record<string, string>;
+    public details: string[];
+    public rawErrors: unknown;
+
+    constructor(
+        message: string,
+        status: number,
+        fieldErrors: Record<string, string> = {},
+        details: string[] = [],
+        rawErrors: unknown = null
+    ) {
+        super(message);
+        this.name = 'ApiError';
+        this.status = status;
+        this.fieldErrors = fieldErrors;
+        this.details = details;
+        this.rawErrors = rawErrors;
+        Object.setPrototypeOf(this, ApiError.prototype);
+    }
+}
+
+export function extractFieldErrors(errors: ApiErrorEnvelope['errors']): Record<string, string> {
+    const result: Record<string, string> = {};
+    if (!errors) return result;
+
+    if (Array.isArray(errors)) {
+        for (const item of errors) {
+            if (item && typeof item === 'object') {
+                const field = typeof item.field === 'string' ? item.field.trim() : '';
+                const message = typeof item.message === 'string' ? item.message.trim() : '';
+                if (field && message) {
+                    result[field] = message;
+                    // Alias normalization
+                    if (field === 'room_id') result['room'] = message;
+                    if (field === 'participant_count') result['participants'] = message;
+                    if (field === 'title') result['name'] = message;
+                    if (field === 'start_time' && (message.toLowerCase().includes('hari') || message.toLowerCase().includes('tanggal'))) {
+                        result['date'] = message;
+                    }
+                }
+            }
+        }
+    } else if (typeof errors === 'object') {
+        for (const [key, val] of Object.entries(errors)) {
+            let msg = '';
+            if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'string') {
+                msg = val[0].trim();
+            } else if (typeof val === 'string') {
+                msg = val.trim();
+            }
+            if (msg) {
+                result[key] = msg;
+                if (key === 'room_id') result['room'] = msg;
+                if (key === 'participant_count') result['participants'] = msg;
+                if (key === 'title') result['name'] = msg;
+                if (key === 'start_time' && (msg.toLowerCase().includes('hari') || msg.toLowerCase().includes('tanggal'))) {
+                    result['date'] = msg;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
 function extractErrorDetails(errors: ApiErrorEnvelope['errors']): string[] {
     if (!errors) return [];
     if (Array.isArray(errors)) {
@@ -217,16 +284,33 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
     }
 
     // 4. Penanganan 401 Unauthorized
-    if (response.status === 401) {
+    if (!skipAuth && response.status === 401) {
         clearToken();
         if (typeof window !== 'undefined') {
             window.location.replace('/');
         }
-        throw new Error('Sesi login berakhir. Silakan masuk kembali.');
+        throw new ApiError('Sesi login berakhir. Silakan masuk kembali.', 401);
     }
 
     if (!response.ok) {
-        throw new Error(await getErrorMessage(response, `Permintaan gagal dengan status ${response.status}`));
+        let envelope: ApiErrorEnvelope | null = null;
+        try {
+            envelope = await response.json();
+        } catch {
+            envelope = null;
+        }
+
+        const details = extractErrorDetails(envelope?.errors);
+        const fieldErrors = extractFieldErrors(envelope?.errors);
+        let message = typeof envelope?.message === 'string' && envelope.message.trim()
+            ? envelope.message.trim()
+            : `Permintaan gagal dengan status ${response.status}`;
+
+        if (details.length > 0 && !message.includes(details[0])) {
+            message = `${message} (${details.join(', ')})`;
+        }
+
+        throw new ApiError(message, response.status, fieldErrors, details, envelope?.errors);
     }
 
     if (response.status === 204) {

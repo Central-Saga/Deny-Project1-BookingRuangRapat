@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createBooking, updateBooking } from '@/api';
+import { ApiError, createBooking, updateBooking } from '@/api';
 import { bookingSchema, BookingFormValues } from '@/lib/validations/bookingSchema';
 import { Booking, Room } from '@/types';
 
@@ -73,8 +73,23 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
             else await createBooking(payload);
             await onSaved();
             onClose();
-        } catch (error) {
-            setErrors({ form: error instanceof Error ? error.message : 'Gagal menyimpan booking' });
+        } catch (error: unknown) {
+            if (error instanceof ApiError && Object.keys(error.fieldErrors).length > 0) {
+                setErrors(error.fieldErrors);
+            } else if (error && typeof error === 'object' && 'fieldErrors' in error && error.fieldErrors && typeof error.fieldErrors === 'object' && Object.keys(error.fieldErrors as Record<string, string>).length > 0) {
+                setErrors(error.fieldErrors as Record<string, string>);
+            } else {
+                const message = error instanceof Error ? error.message : 'Gagal menyimpan booking';
+                if (message.toLowerCase().includes('sudah dibooking') || message.toLowerCase().includes('bentrok')) {
+                    setErrors({
+                        form: message,
+                        start_time: 'Jadwal ruangan sudah terisi pada rentang waktu ini.',
+                        end_time: 'Silakan pilih rentang waktu lain.',
+                    });
+                } else {
+                    setErrors({ form: message });
+                }
+            }
         } finally {
             setSubmitting(false);
         }
@@ -91,13 +106,113 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
                 <button type="button" onClick={onClose} aria-label="Tutup form booking" className="rounded-lg p-2 text-emerald-200/70 hover:bg-emerald-900/60 hover:text-white">&times;</button>
             </div>
             {errors.form && <div role="alert" className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{errors.form}</div>}
+            <div role="status" aria-live="polite" className="sr-only">{submitting ? 'Sedang mengirim data booking ke server...' : ''}</div>
             <form onSubmit={handleSubmit} className="space-y-5">
-                <div><label htmlFor="modal-room" className="mb-2 block text-sm font-semibold text-emerald-100">Pilih ruangan</label><select id="modal-room" value={form.room_id} onChange={(event) => updateField('room_id', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]"><option value="">Pilih ruangan yang tersedia</option>{rooms.map((room) => <option key={room.id} value={room.id}>{room.name} · {room.capacity} orang</option>)}</select><FieldError message={errors.room_id} /></div>
-                <div><label htmlFor="modal-title" className="mb-2 block text-sm font-semibold text-emerald-100">Nama agenda</label><input id="modal-title" value={form.title} onChange={(event) => updateField('title', event.target.value)} placeholder="Contoh: Weekly product sync" className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white" /><FieldError message={errors.title} /></div>
-                <div><label htmlFor="modal-participants" className="mb-2 block text-sm font-semibold text-emerald-100">Jumlah peserta</label><input id="modal-participants" type="number" min="1" value={form.participant_count} onChange={(event) => updateField('participant_count', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white" /><FieldError message={errors.participant_count} /></div>
-                <div><label htmlFor="modal-date" className="mb-2 block text-sm font-semibold text-emerald-100">Tanggal</label><input id="modal-date" type="date" min={new Date().toISOString().split('T')[0]} value={form.date} onChange={(event) => updateField('date', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]" /><FieldError message={errors.date} /></div>
-                <div className="grid grid-cols-2 gap-3"><div><label htmlFor="modal-start" className="mb-2 block text-sm font-semibold text-emerald-100">Mulai</label><input id="modal-start" type="time" value={form.start_time} onChange={(event) => updateField('start_time', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]" /><FieldError message={errors.start_time} /></div><div><label htmlFor="modal-end" className="mb-2 block text-sm font-semibold text-emerald-100">Selesai</label><input id="modal-end" type="time" value={form.end_time} onChange={(event) => updateField('end_time', event.target.value)} className="w-full rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark]" /><FieldError message={errors.end_time} /></div></div>
-                <div><label htmlFor="modal-notes" className="mb-2 block text-sm font-semibold text-emerald-100">Catatan <span className="font-normal text-emerald-200/50">(opsional)</span></label><textarea id="modal-notes" rows={3} maxLength={500} value={form.notes} onChange={(event) => updateField('notes', event.target.value)} className="w-full resize-none rounded-xl border border-emerald-800 bg-emerald-950/60 px-3.5 py-3 text-sm text-white" /><FieldError message={errors.notes} /></div>
+                <div>
+                    <label htmlFor="modal-room" className="mb-2 block text-sm font-semibold text-emerald-100">Pilih ruangan</label>
+                    <select
+                        id="modal-room"
+                        value={form.room_id}
+                        disabled={submitting}
+                        aria-invalid={Boolean(errors.room_id || errors.room)}
+                        aria-describedby={(errors.room_id || errors.room) ? 'modal-room-error' : undefined}
+                        onChange={(event) => updateField('room_id', event.target.value)}
+                        className={`w-full rounded-xl border ${errors.room_id || errors.room ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                        <option value="">Pilih ruangan yang tersedia</option>
+                        {rooms.map((room) => <option key={room.id} value={room.id}>{room.name} · {room.capacity} orang</option>)}
+                    </select>
+                    <FieldError id="modal-room-error" field="room_id" message={errors.room_id || errors.room} />
+                </div>
+                <div>
+                    <label htmlFor="modal-title" className="mb-2 block text-sm font-semibold text-emerald-100">Nama agenda</label>
+                    <input
+                        id="modal-title"
+                        value={form.title}
+                        disabled={submitting}
+                        aria-invalid={Boolean(errors.title || errors.name)}
+                        aria-describedby={(errors.title || errors.name) ? 'modal-title-error' : undefined}
+                        onChange={(event) => updateField('title', event.target.value)}
+                        placeholder="Contoh: Weekly product sync"
+                        className={`w-full rounded-xl border ${errors.title || errors.name ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60`}
+                    />
+                    <FieldError id="modal-title-error" field="title" message={errors.title || errors.name} />
+                </div>
+                <div>
+                    <label htmlFor="modal-participants" className="mb-2 block text-sm font-semibold text-emerald-100">Jumlah peserta</label>
+                    <input
+                        id="modal-participants"
+                        type="number"
+                        min="1"
+                        value={form.participant_count}
+                        disabled={submitting}
+                        aria-invalid={Boolean(errors.participant_count || errors.participants)}
+                        aria-describedby={(errors.participant_count || errors.participants) ? 'modal-participants-error' : undefined}
+                        onChange={(event) => updateField('participant_count', event.target.value)}
+                        className={`w-full rounded-xl border ${errors.participant_count || errors.participants ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60`}
+                    />
+                    <FieldError id="modal-participants-error" field="participant_count" message={errors.participant_count || errors.participants} />
+                </div>
+                <div>
+                    <label htmlFor="modal-date" className="mb-2 block text-sm font-semibold text-emerald-100">Tanggal</label>
+                    <input
+                        id="modal-date"
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
+                        value={form.date}
+                        disabled={submitting}
+                        aria-invalid={Boolean(errors.date)}
+                        aria-describedby={errors.date ? 'modal-date-error' : undefined}
+                        onChange={(event) => updateField('date', event.target.value)}
+                        className={`w-full rounded-xl border ${errors.date ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60`}
+                    />
+                    <FieldError id="modal-date-error" field="date" message={errors.date} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label htmlFor="modal-start" className="mb-2 block text-sm font-semibold text-emerald-100">Mulai</label>
+                        <input
+                            id="modal-start"
+                            type="time"
+                            value={form.start_time}
+                            disabled={submitting}
+                            aria-invalid={Boolean(errors.start_time)}
+                            aria-describedby={errors.start_time ? 'modal-start-error' : undefined}
+                            onChange={(event) => updateField('start_time', event.target.value)}
+                            className={`w-full rounded-xl border ${errors.start_time ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60`}
+                        />
+                        <FieldError id="modal-start-error" field="start_time" message={errors.start_time} />
+                    </div>
+                    <div>
+                        <label htmlFor="modal-end" className="mb-2 block text-sm font-semibold text-emerald-100">Selesai</label>
+                        <input
+                            id="modal-end"
+                            type="time"
+                            value={form.end_time}
+                            disabled={submitting}
+                            aria-invalid={Boolean(errors.end_time)}
+                            aria-describedby={errors.end_time ? 'modal-end-error' : undefined}
+                            onChange={(event) => updateField('end_time', event.target.value)}
+                            className={`w-full rounded-xl border ${errors.end_time ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60`}
+                        />
+                        <FieldError id="modal-end-error" field="end_time" message={errors.end_time} />
+                    </div>
+                </div>
+                <div>
+                    <label htmlFor="modal-notes" className="mb-2 block text-sm font-semibold text-emerald-100">Catatan <span className="font-normal text-emerald-200/50">(opsional)</span></label>
+                    <textarea
+                        id="modal-notes"
+                        rows={3}
+                        maxLength={500}
+                        value={form.notes}
+                        disabled={submitting}
+                        aria-invalid={Boolean(errors.notes)}
+                        aria-describedby={errors.notes ? 'modal-notes-error' : undefined}
+                        onChange={(event) => updateField('notes', event.target.value)}
+                        className={`w-full resize-none rounded-xl border ${errors.notes ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-3.5 py-3 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60`}
+                    />
+                    <FieldError id="modal-notes-error" field="notes" message={errors.notes} />
+                </div>
                 <div className="flex justify-end gap-3">
                     <button type="button" disabled={submitting} onClick={onClose} className="rounded-xl border border-emerald-800 px-4 py-3 text-sm font-semibold text-emerald-100 hover:bg-emerald-900/50 disabled:cursor-not-allowed disabled:opacity-50">Batal</button>
                     <button
@@ -105,6 +220,7 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
                         disabled={submitting}
                         aria-busy={submitting}
                         data-loading={submitting}
+                        data-submitting={submitting}
                         className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#f57c00] px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {submitting ? (
@@ -113,7 +229,7 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                                 </svg>
-                                <span>Menyimpan booking...</span>
+                                <span data-testid="submit-status-text">Menyimpan booking...</span>
                             </>
                         ) : initialBooking ? (
                             'Simpan perubahan'
@@ -127,6 +243,16 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
     </div>;
 }
 
-function FieldError({ message }: { message?: string }) {
-    return message ? <p className="mt-1.5 text-xs font-medium text-amber-300">{message}</p> : null;
+function FieldError({ id, field, message }: { id?: string; field?: string; message?: string }) {
+    return message ? (
+        <p
+            id={id}
+            role="alert"
+            data-testid={id || (field ? `${field}-error` : undefined)}
+            data-field-error={field}
+            className="mt-1.5 text-xs font-semibold text-rose-400"
+        >
+            {message}
+        </p>
+    ) : null;
 }
