@@ -86,6 +86,14 @@ export interface ApiErrorEnvelope {
     errors?: ApiErrorItem[] | Record<string, string[] | string>;
 }
 
+export interface ApiErrorOptions {
+    message: string;
+    status: number;
+    fieldErrors?: Record<string, string>;
+    details?: string[];
+    rawErrors?: unknown;
+}
+
 export class ApiError extends Error {
     public status: number;
     public fieldErrors: Record<string, string>;
@@ -93,44 +101,61 @@ export class ApiError extends Error {
     public rawErrors: unknown;
 
     constructor(
-        message: string,
-        status: number,
+        messageOrOptions: string | ApiErrorOptions,
+        status?: number,
         fieldErrors: Record<string, string> = {},
         details: string[] = [],
         rawErrors: unknown = null
     ) {
-        super(message);
+        if (typeof messageOrOptions === 'object' && messageOrOptions !== null) {
+            super(messageOrOptions.message);
+            this.status = messageOrOptions.status;
+            this.fieldErrors = messageOrOptions.fieldErrors || (messageOrOptions.rawErrors ? extractFieldErrors(messageOrOptions.rawErrors) : {});
+            this.details = messageOrOptions.details || [];
+            this.rawErrors = messageOrOptions.rawErrors ?? null;
+        } else {
+            super(messageOrOptions);
+            this.status = status ?? 500;
+            this.fieldErrors = fieldErrors;
+            this.details = details;
+            this.rawErrors = rawErrors;
+        }
         this.name = 'ApiError';
-        this.status = status;
-        this.fieldErrors = fieldErrors;
-        this.details = details;
-        this.rawErrors = rawErrors;
         Object.setPrototypeOf(this, ApiError.prototype);
     }
 }
 
-export function extractFieldErrors(errors: ApiErrorEnvelope['errors']): Record<string, string> {
+export function extractFieldErrors(errors: unknown): Record<string, string> {
     const result: Record<string, string> = {};
     if (!errors) return result;
 
     if (Array.isArray(errors)) {
         for (const item of errors) {
             if (item && typeof item === 'object') {
-                const field = typeof item.field === 'string' ? item.field.trim() : '';
-                const message = typeof item.message === 'string' ? item.message.trim() : '';
+                const field = 'field' in item && typeof item.field === 'string' ? item.field.trim() : '';
+                const message = 'message' in item && typeof item.message === 'string' ? item.message.trim() : '';
                 if (field && message) {
                     result[field] = message;
-                    // Alias normalization
-                    if (field === 'room_id') result['room'] = message;
-                    if (field === 'participant_count') result['participants'] = message;
-                    if (field === 'title') result['name'] = message;
+                    // Bidirectional alias normalization
+                    if (field === 'room_id' || field === 'room') {
+                        result['room_id'] = message;
+                        result['room'] = message;
+                    }
+                    if (field === 'participant_count' || field === 'participants') {
+                        result['participant_count'] = message;
+                        result['participants'] = message;
+                    }
+                    if (field === 'title' || field === 'name') {
+                        result['title'] = message;
+                        result['name'] = message;
+                    }
                     if (field === 'start_time' && (message.toLowerCase().includes('hari') || message.toLowerCase().includes('tanggal'))) {
                         result['date'] = message;
                     }
                 }
             }
         }
-    } else if (typeof errors === 'object') {
+    } else if (typeof errors === 'object' && errors !== null) {
         for (const [key, val] of Object.entries(errors)) {
             let msg = '';
             if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'string') {
@@ -140,9 +165,19 @@ export function extractFieldErrors(errors: ApiErrorEnvelope['errors']): Record<s
             }
             if (msg) {
                 result[key] = msg;
-                if (key === 'room_id') result['room'] = msg;
-                if (key === 'participant_count') result['participants'] = msg;
-                if (key === 'title') result['name'] = msg;
+                // Bidirectional alias normalization
+                if (key === 'room_id' || key === 'room') {
+                    result['room_id'] = msg;
+                    result['room'] = msg;
+                }
+                if (key === 'participant_count' || key === 'participants') {
+                    result['participant_count'] = msg;
+                    result['participants'] = msg;
+                }
+                if (key === 'title' || key === 'name') {
+                    result['title'] = msg;
+                    result['name'] = msg;
+                }
                 if (key === 'start_time' && (msg.toLowerCase().includes('hari') || msg.toLowerCase().includes('tanggal'))) {
                     result['date'] = msg;
                 }
