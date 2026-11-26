@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Booking, User } from '@/types';
 import {
     approveBooking,
     clearToken,
@@ -56,12 +57,12 @@ describe('services/api', () => {
     });
 
     it('berhasil login, menyimpan token, dan mengambil profil pengguna dengan Bearer token', async () => {
-        const mockUser = {
+        const mockUser: User = {
             id: 1,
             name: 'Budi Karyawan',
             email: 'budi@perusahaan.com',
-            role: 'karyawan' as const,
-            status: 'active' as const,
+            role: 'karyawan',
+            status: 'active',
         };
 
         const fetchMock = vi
@@ -166,7 +167,7 @@ describe('services/api', () => {
 
     it('mengambil seluruh halaman pagination pada getBookings dan membuka envelope data pada create/approve/reject', async () => {
         saveToken('admin-token');
-        const bookingPage1 = {
+        const bookingPage1: Booking = {
             id: 10,
             room_id: 1,
             user_id: 2,
@@ -174,7 +175,7 @@ describe('services/api', () => {
             participant_count: 6,
             start_time: '2026-11-02T09:00:00+07:00',
             end_time: '2026-11-02T10:00:00+07:00',
-            status: 'pending' as const,
+            status: 'pending',
         };
         const bookingPage2 = {
             ...bookingPage1,

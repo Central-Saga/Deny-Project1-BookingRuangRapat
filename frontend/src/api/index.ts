@@ -44,6 +44,21 @@ export {
     type RequestOptions,
 };
 
+export interface DataEnvelope<T> {
+    data: T;
+}
+
+function hasDataEnvelope<T>(payload: DataEnvelope<T> | T): payload is DataEnvelope<T> {
+    return Boolean(payload && typeof payload === 'object' && 'data' in payload);
+}
+
+function unwrapResponse<T>(payload: DataEnvelope<T> | T): T {
+    if (hasDataEnvelope(payload)) {
+        return payload.data;
+    }
+    return payload;
+}
+
 // ==========================================
 // Authentication
 // ==========================================
@@ -99,7 +114,7 @@ export async function createRoom(payload: {
     facilities?: string[];
     is_active: boolean;
 }): Promise<Room> {
-    const data = await apiClient<{ data?: Room } | Room>('/v1/rooms', {
+    const data = await apiClient<DataEnvelope<Room> | Room>('/v1/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -107,7 +122,7 @@ export async function createRoom(payload: {
     }).catch((err) => {
         throw new Error(err.message || 'Gagal menambahkan ruangan');
     });
-    return (data as { data?: Room }).data ?? (data as Room);
+    return unwrapResponse(data);
 }
 
 export async function updateRoom(
@@ -121,7 +136,7 @@ export async function updateRoom(
         is_active: boolean;
     }
 ): Promise<Room> {
-    const data = await apiClient<{ data?: Room } | Room>(`/v1/rooms/${id}`, {
+    const data = await apiClient<DataEnvelope<Room> | Room>(`/v1/rooms/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -129,7 +144,7 @@ export async function updateRoom(
     }).catch((err) => {
         throw new Error(err.message || 'Gagal memperbarui ruangan');
     });
-    return (data as { data?: Room }).data ?? (data as Room);
+    return unwrapResponse(data);
 }
 
 export async function deleteRoom(id: number): Promise<void> {
@@ -161,7 +176,7 @@ export async function createBooking(payload: {
     end_time: string;
     notes?: string;
 }): Promise<Booking> {
-    const data = await apiClient<{ data?: Booking } | Booking>('/v1/bookings', {
+    const data = await apiClient<DataEnvelope<Booking> | Booking>('/v1/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -170,7 +185,7 @@ export async function createBooking(payload: {
         throw new Error(err.message || 'Gagal membuat pemesanan');
     });
     invalidateApiCache('availability');
-    return (data as { data?: Booking }).data ?? (data as Booking);
+    return unwrapResponse(data);
 }
 
 export async function updateBooking(
@@ -184,7 +199,7 @@ export async function updateBooking(
         notes?: string;
     }
 ): Promise<Booking> {
-    const data = await apiClient<{ data?: Booking } | Booking>(`/v1/bookings/${id}`, {
+    const data = await apiClient<DataEnvelope<Booking> | Booking>(`/v1/bookings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -193,22 +208,22 @@ export async function updateBooking(
         throw new Error(err.message || 'Gagal memperbarui pemesanan');
     });
     invalidateApiCache('availability');
-    return (data as { data?: Booking }).data ?? (data as Booking);
+    return unwrapResponse(data);
 }
 
 export async function approveBooking(id: number): Promise<Booking> {
-    const data = await apiClient<{ data?: Booking } | Booking>(`/v1/bookings/${id}/approve`, {
+    const data = await apiClient<DataEnvelope<Booking> | Booking>(`/v1/bookings/${id}/approve`, {
         method: 'PATCH',
         cacheTag: 'bookings',
     }).catch((err) => {
         throw new Error(err.message || 'Gagal menyetujui booking');
     });
     invalidateApiCache('availability');
-    return (data as { data?: Booking }).data ?? (data as Booking);
+    return unwrapResponse(data);
 }
 
 export async function rejectBooking(id: number, approval_notes: string): Promise<Booking> {
-    const data = await apiClient<{ data?: Booking } | Booking>(`/v1/bookings/${id}/reject`, {
+    const data = await apiClient<DataEnvelope<Booking> | Booking>(`/v1/bookings/${id}/reject`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approval_notes }),
@@ -217,7 +232,7 @@ export async function rejectBooking(id: number, approval_notes: string): Promise
         throw new Error(err.message || 'Gagal menolak booking');
     });
     invalidateApiCache('availability');
-    return (data as { data?: Booking }).data ?? (data as Booking);
+    return unwrapResponse(data);
 }
 
 export async function cancelBooking(id: number, cancellation_reason: string): Promise<void> {
@@ -257,7 +272,7 @@ export async function createUser(payload: {
     role: User['role'];
     status: User['status'];
 }): Promise<User> {
-    const data = await apiClient<{ data?: User } | User>('/v1/users', {
+    const data = await apiClient<DataEnvelope<User> | User>('/v1/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -265,14 +280,14 @@ export async function createUser(payload: {
     }).catch((err) => {
         throw new Error(err.message || 'Gagal membuat akun pengguna');
     });
-    return (data as { data?: User }).data ?? (data as User);
+    return unwrapResponse(data);
 }
 
 export async function updateUser(
     id: number,
     payload: { role: User['role']; status: User['status'] }
 ): Promise<User> {
-    const data = await apiClient<{ data?: User } | User>(`/v1/users/${id}`, {
+    const data = await apiClient<DataEnvelope<User> | User>(`/v1/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -280,5 +295,5 @@ export async function updateUser(
     }).catch((err) => {
         throw new Error(err.message || 'Gagal memperbarui pengguna');
     });
-    return (data as { data?: User }).data ?? (data as User);
+    return unwrapResponse(data);
 }

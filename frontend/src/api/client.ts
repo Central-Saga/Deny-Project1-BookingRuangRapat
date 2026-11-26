@@ -68,7 +68,7 @@ export function clearToken(): void {
     clearApiCache();
 }
 
-export function authHeaders(): HeadersInit {
+export function authHeaders(): Record<string, string> {
     const token = getToken();
     return token ? { Accept: 'application/json', Authorization: `Bearer ${token}` } : { Accept: 'application/json' };
 }
@@ -103,7 +103,12 @@ function extractErrorDetails(errors: ApiErrorEnvelope['errors']): string[] {
 }
 
 export async function getErrorMessage(response: Response, fallback: string): Promise<string> {
-    const data = (await response.json().catch(() => ({}))) as ApiErrorEnvelope;
+    let data: ApiErrorEnvelope | null = null;
+    try {
+        data = await response.json();
+    } catch {
+        data = null;
+    }
     const message = typeof data?.message === 'string' ? data.message.trim() : '';
     const details = extractErrorDetails(data?.errors);
 
@@ -174,10 +179,23 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
     }
 
     // 3. Gabungkan Headers
+    const extraHeaders: Record<string, string> = {};
+    if (headers instanceof Headers) {
+        headers.forEach((value, key) => {
+            extraHeaders[key] = value;
+        });
+    } else if (Array.isArray(headers)) {
+        headers.forEach(([key, value]) => {
+            extraHeaders[key] = value;
+        });
+    } else if (headers && typeof headers === 'object') {
+        Object.assign(extraHeaders, headers);
+    }
+
     const requestHeaders: Record<string, string> = {
         Accept: 'application/json',
-        ...(skipAuth ? {} : (authHeaders() as Record<string, string>)),
-        ...(headers as Record<string, string>),
+        ...(skipAuth ? {} : authHeaders()),
+        ...extraHeaders,
     };
 
     let response: Response;
@@ -216,10 +234,10 @@ export async function apiClient<T = unknown>(endpoint: string, options: RequestO
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
             invalidateApiCache(tag);
         }
-        return {} as T;
+        return JSON.parse('null');
     }
 
-    const data = (await response.json()) as T;
+    const data: T = await response.json();
 
     // 5. Invalidasi cache otomatis setelah mutasi (POST, PUT, PATCH, DELETE)
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
