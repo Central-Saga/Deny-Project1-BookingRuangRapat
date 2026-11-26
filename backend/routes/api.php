@@ -13,6 +13,10 @@ Route::post('/auth/login', [AuthController::class, 'login'])->middleware('thrott
 Route::post('/v1/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/v1/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
+// Public signed download routes for private files
+Route::get('/uploads/download/{path}', [UploadController::class, 'download'])->name('api.uploads.signed-download');
+Route::get('/v1/uploads/download/{path}', [UploadController::class, 'download'])->name('api.v1.uploads.signed-download');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     // Audit 496 Parameter 26 (Param 10.8): Logout mencabut token
@@ -24,10 +28,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/password', [AuthController::class, 'changePassword']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::post('/uploads', [UploadController::class, 'store']);
+    Route::get('/uploads/temporary-url', [UploadController::class, 'temporaryUrl']);
+    Route::get('/uploads/signed-url', [UploadController::class, 'temporaryUrl']);
 
     // Audit 496 Parameter 7, 16: Route Versioning Prefix /api/v1/ pada Seluruh Rute Booking dan Ruangan
     Route::prefix('v1')->group(function () {
         Route::post('/uploads', [UploadController::class, 'store']);
+        Route::get('/uploads/temporary-url', [UploadController::class, 'temporaryUrl']);
+        Route::get('/uploads/signed-url', [UploadController::class, 'temporaryUrl']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);

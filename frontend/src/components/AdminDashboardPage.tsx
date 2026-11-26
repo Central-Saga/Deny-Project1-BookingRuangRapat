@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError, approveBooking, clearToken, createRoom, createUser, deleteRoom, getBookings, getRooms, getUsers, logout, rejectBooking, updateRoom, updateUser } from '@/api';
+import { FileUpload } from '@/components/FileUpload';
 import type { Booking, Room, User } from '@/types';
 
 type Section = 'overview' | 'approvals' | 'history' | 'rooms' | 'users';
@@ -395,6 +396,13 @@ function RoomSection({ rooms, form, errors, onClearError, saving, editing, toggl
                         className={`w-full rounded-2xl border ${errors.facilities ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3.5 text-sm text-white placeholder-emerald-200/40 outline-none focus:border-[#f57c00] transition disabled:opacity-60`}
                     />
                     {errors.facilities && <p id="room-facilities-error" role="alert" data-testid="error-facilities" className="mt-1.5 text-xs font-medium text-rose-400">{errors.facilities}</p>}
+                </div>
+                <div className="sm:col-span-2">
+                    <FileUpload
+                        id="room-image-upload"
+                        accept="image/jpeg,image/png,image/webp"
+                        maxSize={5 * 1024 * 1024}
+                    />
                 </div>
                 <button
                     type="submit"

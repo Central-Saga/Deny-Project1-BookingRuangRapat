@@ -404,3 +404,95 @@ export async function getAllPages<T>(path: string, fallback: string): Promise<T[
 
     return items;
 }
+
+export const MAX_UPLOAD_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+export const ACCEPTED_UPLOAD_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export interface UploadResponse {
+    url: string;
+    temporary_url?: string;
+    temporaryUrl?: string;
+    signed_url?: string;
+    path: string;
+    size: number;
+    mime_type: string;
+    visibility: 'public' | 'private';
+}
+
+export async function uploadFile(
+    file: File,
+    options: {
+        isPrivate?: boolean;
+        accept?: string[];
+        maxSize?: number;
+        onProgress?: (percent: number) => void;
+    } = {}
+): Promise<UploadResponse> {
+    const maxSize = options.maxSize ?? MAX_UPLOAD_FILE_SIZE;
+    const accept = options.accept ?? ACCEPTED_UPLOAD_MIMES;
+
+    // Guard 1: Client-side maxSize check
+    if (file.size > maxSize) {
+        throw new Error(`Ukuran file (${(file.size / (1024 * 1024)).toFixed(1)} MB) melebihi batas maksimal ${Math.round(maxSize / (1024 * 1024))} MB.`);
+    }
+
+    // Guard 2: Client-side accept check
+    if (!accept.includes(file.type.toLowerCase())) {
+        throw new Error(`Format file ${file.type} tidak didukung. Harap gunakan format: ${accept.join(', ')}.`);
+    }
+
+    if (options.onProgress) {
+        options.onProgress(20);
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options.isPrivate) {
+        formData.append('is_private', '1');
+    }
+
+    const token = getToken();
+    const headers: Record<string, string> = {
+        Accept: 'application/json',
+    };
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (options.onProgress) {
+        options.onProgress(50);
+    }
+
+    const response = await fetch(`${API_URL}/v1/uploads`, {
+        method: 'POST',
+        headers,
+        body: formData,
+    });
+
+    if (options.onProgress) {
+        options.onProgress(90);
+    }
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Gagal mengunggah file.');
+    }
+
+    if (options.onProgress) {
+        options.onProgress(100);
+    }
+
+    const data = result.data || {};
+    const uploadData: UploadResponse = {
+        url: String(data.url || ''),
+        temporary_url: typeof data.temporary_url === 'string' ? data.temporary_url : undefined,
+        temporaryUrl: typeof data.temporaryUrl === 'string' ? data.temporaryUrl : undefined,
+        signed_url: typeof data.signed_url === 'string' ? data.signed_url : undefined,
+        path: String(data.path || ''),
+        size: Number(data.size || 0),
+        mime_type: String(data.mime_type || ''),
+        visibility: data.visibility === 'private' ? 'private' : 'public',
+    };
+
+    return uploadData;
+}

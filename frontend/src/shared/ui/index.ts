@@ -11,3 +11,4 @@ export * from './Modal';
 export * from './Spinner';
 export * from './ErrorFallback';
 export * from './NotFoundFallback';
+export * from './FileUpload';
