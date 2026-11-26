@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Room;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Audit 496 Parameter 14: Kepatuhan PSR-4 Autoloading Linux
@@ -35,8 +37,12 @@ class StoreRoomRequest extends FormRequest
     {
         $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
 
+        $roomId = $this->route('room') instanceof Room ? $this->route('room')->id : ($this->route('room') ?? $this->input('id') ?? $this->input('room_id'));
+
         return [
-            'name' => $isUpdate ? 'sometimes|string|max:255' : 'required|string|max:255',
+            'name' => $isUpdate
+                ? ['sometimes', 'string', 'max:255', Rule::unique('rooms', 'name')->ignore($roomId)->whereNull('deleted_at')]
+                : ['required', 'string', 'max:255', Rule::unique('rooms', 'name')->whereNull('deleted_at')],
             'capacity' => $isUpdate ? 'sometimes|integer|min:1' : 'required|integer|min:1',
             'stok' => 'sometimes|integer|min:0',
             'stock' => 'sometimes|integer|min:0',

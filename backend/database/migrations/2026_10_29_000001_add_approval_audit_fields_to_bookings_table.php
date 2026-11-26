@@ -13,6 +13,7 @@ return new class extends Migration
                 $table->foreignId('approved_by')
                     ->nullable()
                     ->after('approval_notes')
+                    ->index()
                     ->constrained('users')
                     ->nullOnDelete();
             }
