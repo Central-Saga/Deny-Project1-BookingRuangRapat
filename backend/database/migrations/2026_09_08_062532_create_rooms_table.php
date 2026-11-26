@@ -18,6 +18,8 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->softDeletes();
             $table->timestamps();
+
+            $table->unique(['name', 'deleted_at'], 'rooms_name_deleted_at_unique');
         });
     }
 
