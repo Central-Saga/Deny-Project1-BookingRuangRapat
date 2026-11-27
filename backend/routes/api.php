@@ -1,12 +1,22 @@
 <?php
 
+use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\QueueMonitoringController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
+
+// Health & readiness endpoints
+Route::get('/up', [HealthController::class, 'check']);
+Route::get('/health', [HealthController::class, 'check']);
+Route::get('/ready', [HealthController::class, 'check']);
+Route::get('/v1/up', [HealthController::class, 'check']);
+Route::get('/v1/health', [HealthController::class, 'check']);
+Route::get('/v1/ready', [HealthController::class, 'check']);
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -71,6 +81,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/bookings/{booking}/reject', [BookingController::class, 'reject']);
         Route::post('/bookings/{booking}/reject', [BookingController::class, 'reject']);
         Route::delete('/bookings/{booking}', [BookingController::class, 'destroy']);
+
+        Route::get('/activity-log', [ActivityLogController::class, 'index']);
+        Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+        Route::delete('/activity-log/{id}', [ActivityLogController::class, 'destroy']);
+        Route::delete('/activity-log', [ActivityLogController::class, 'flush']);
+        Route::delete('/activity-logs/{id}', [ActivityLogController::class, 'destroy']);
+        Route::delete('/activity-logs', [ActivityLogController::class, 'flush']);
 
         Route::get('/queue/dashboard', [QueueMonitoringController::class, 'dashboard']);
         Route::get('/queue/failed-jobs', [QueueMonitoringController::class, 'failedJobs']);

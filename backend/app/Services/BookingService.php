@@ -111,6 +111,15 @@ class BookingService implements BookingServiceInterface
                 'approved_by' => $approverId,
                 'decided_at' => now(),
             ]);
+
+            $activity = activity('booking')
+                ->performedOn($booking);
+
+            if ($approver = User::find($approverId)) {
+                $activity->causedBy($approver);
+            }
+
+            $activity->log('Booking disetujui');
         });
 
         SendBookingNotification::dispatch($booking->id, 'approved');
@@ -133,6 +142,16 @@ class BookingService implements BookingServiceInterface
                 'approved_by' => $approverId,
                 'decided_at' => now(),
             ]);
+
+            $activity = activity('booking')
+                ->performedOn($booking)
+                ->withProperty('notes', strip_tags($notes));
+
+            if ($approver = User::find($approverId)) {
+                $activity->causedBy($approver);
+            }
+
+            $activity->log('Booking ditolak');
         });
 
         SendBookingNotification::dispatch($booking->id, 'rejected');
@@ -196,6 +215,16 @@ class BookingService implements BookingServiceInterface
                 'status' => 'cancelled',
                 'cancellation_reason' => strip_tags($reason),
             ]);
+
+            $activity = activity('booking')
+                ->performedOn($booking)
+                ->withProperty('reason', strip_tags($reason));
+
+            if ($causer = User::find($booking->user_id)) {
+                $activity->causedBy($causer);
+            }
+
+            $activity->log('Booking dibatalkan');
         });
 
         SendBookingNotification::dispatch($booking->id, 'cancelled');
