@@ -30,6 +30,8 @@ coverage/
 # misc
 .DS_Store
 *.pem
+AGENTS.md
+**/AGENTS.md
 
 # debug
 npm-debug.log*

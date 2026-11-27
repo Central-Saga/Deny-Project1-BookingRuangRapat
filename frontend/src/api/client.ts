@@ -18,9 +18,6 @@ export const TOKEN_KEY = 'meetspace_auth_token';
 let inMemoryToken: string | null = null;
 
 export function getToken(): string | null {
-    if (inMemoryToken) {
-        return inMemoryToken;
-    }
     if (typeof window !== 'undefined') {
         try {
             const localToken = window.localStorage.getItem(TOKEN_KEY);
@@ -37,7 +34,7 @@ export function getToken(): string | null {
             return decodeURIComponent(match[1]);
         }
     }
-    return null;
+    return inMemoryToken;
 }
 
 export function hasToken(): boolean {
