@@ -7,6 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Service Layer untuk Monitoring dan Manajemen Queue / Background Jobs.
@@ -20,7 +21,7 @@ class QueueMonitoringService implements QueueMonitoringServiceInterface
      */
     public function getQueueStats(): array
     {
-        return Cache::remember('queue_dashboard_metrics', 10, function (): array {
+        $fetcher = function (): array {
             $pendingJobs = DB::table('jobs')->count();
             $failedJobs = DB::table('failed_jobs')->count();
 
@@ -34,7 +35,15 @@ class QueueMonitoringService implements QueueMonitoringServiceInterface
                 'scheduler_active' => true,
                 'checked_at' => now()->toIso8601String(),
             ];
-        });
+        };
+
+        try {
+            return Cache::remember('queue_dashboard_metrics', 10, $fetcher);
+        } catch (\Throwable $e) {
+            Log::warning('QueueMonitoringService Cache fail-open fallback to DB: '.$e->getMessage());
+
+            return $fetcher();
+        }
     }
 
     /**

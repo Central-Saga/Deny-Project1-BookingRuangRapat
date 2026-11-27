@@ -94,6 +94,7 @@ return [
         'failover' => [
             'driver' => 'failover',
             'stores' => [
+                'redis',
                 'database',
                 'array',
             ],
@@ -112,6 +113,6 @@ return [
     |
     */
 
-    'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
+    'prefix' => (string) (env('CACHE_PREFIX') ?: Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
 
 ];

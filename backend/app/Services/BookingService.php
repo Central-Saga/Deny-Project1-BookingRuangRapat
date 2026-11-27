@@ -12,6 +12,7 @@ use App\Services\Contracts\BookingServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Service Layer untuk Pemesanan Ruang Rapat.
@@ -89,13 +90,22 @@ class BookingService implements BookingServiceInterface
         $page = request()->integer('page', 1);
         $cacheKey = "booking_availability_p{$page}_l{$perPage}";
 
-        return Cache::remember($cacheKey, 30, function () use ($perPage): LengthAwarePaginator {
+        $fetcher = function () use ($perPage): LengthAwarePaginator {
             return Booking::with('room')
                 ->whereNotIn('status', ['rejected', 'cancelled'])
                 ->orderBy('start_time')
                 ->orderBy('id')
                 ->paginate($perPage);
-        });
+        };
+
+        // Fail-open: jika Redis/Cache store tidak tersedia, eksekusi query langsung ke database
+        try {
+            return Cache::remember($cacheKey, 30, $fetcher);
+        } catch (\Throwable $e) {
+            Log::warning('BookingService Cache fail-open fallback to DB: '.$e->getMessage());
+
+            return $fetcher();
+        }
     }
 
     /**
