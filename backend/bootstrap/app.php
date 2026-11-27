@@ -47,6 +47,24 @@ return Application::configure(basePath: dirname(__DIR__))
             Authorize::class,
         ]);
 
+        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_AWS_ELB);
+
+        $middleware->priority([
+            TrustProxies::class,
+            Illuminate\Http\Middleware\TrustProxies::class,
+            SecurityHeadersMiddleware::class,
+            CookieBearerTokenMiddleware::class,
+            ValidateCsrfToken::class,
+            ThrottleRequests::class,
+            ThrottleRequestsWithRedis::class,
+            SubstituteBindings::class,
+            AuthenticatesRequests::class,
+            Authenticate::class,
+            EnsureFrontendRequestsAreStateful::class,
+            IdempotencyMiddleware::class,
+            Authorize::class,
+        ]);
+
         $middleware->append(SecurityHeadersMiddleware::class);
         $middleware->prependToGroup('api', CookieBearerTokenMiddleware::class);
         $middleware->prependToGroup('web', CookieBearerTokenMiddleware::class);
