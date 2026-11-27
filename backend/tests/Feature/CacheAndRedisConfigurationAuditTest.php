@@ -104,6 +104,8 @@ class CacheAndRedisConfigurationAuditTest extends TestCase
             }
         }
 
+        $this->assertIsArray($foundFlush);
+        $this->assertCount(0, $foundFlush);
         $this->assertEmpty(
             $foundFlush,
             'Tidak boleh ada pemanggilan Cache::flush() di app/tests (harus invalidasi terarah via Cache::forget): '.json_encode($foundFlush)

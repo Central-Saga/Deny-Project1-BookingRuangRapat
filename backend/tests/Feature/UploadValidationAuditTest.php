@@ -70,6 +70,7 @@ class UploadValidationAuditTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['file'])
             ->assertJsonPath('errors.0.field', 'file');
     }
 
@@ -87,6 +88,7 @@ class UploadValidationAuditTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['file'])
             ->assertJsonPath('errors.0.field', 'file');
     }
 
@@ -104,6 +106,7 @@ class UploadValidationAuditTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['file'])
             ->assertJsonPath('errors.0.field', 'file');
     }
 

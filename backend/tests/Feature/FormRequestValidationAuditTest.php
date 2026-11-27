@@ -42,6 +42,8 @@ class FormRequestValidationAuditTest extends TestCase
             }
         }
 
+        $this->assertIsArray($inlineValidationOccurrences);
+        $this->assertCount(0, $inlineValidationOccurrences);
         $this->assertEmpty(
             $inlineValidationOccurrences,
             'Controller tidak boleh memiliki validasi inline ($request->validate / Validator::make). Ditemukan di: '.implode(', ', $inlineValidationOccurrences)
@@ -55,6 +57,7 @@ class FormRequestValidationAuditTest extends TestCase
     {
         $requestsPath = app_path('Http/Requests');
         $files = glob($requestsPath.'/*.php');
+        $this->assertNotEmpty($files, 'Http/Requests harus memiliki file FormRequest.');
 
         $passwordMinFound = false;
         foreach ($files as $file) {
@@ -115,7 +118,8 @@ class FormRequestValidationAuditTest extends TestCase
         $loginResponse = $this->postJson('/api/login', []);
         $loginResponse->assertStatus(422)
             ->assertJsonPath('status', false)
-            ->assertJsonStructure(['status', 'message', 'errors', 'success', 'data']);
+            ->assertJsonStructure(['status', 'message', 'errors', 'success', 'data'])
+            ->assertJsonValidationErrors(['email', 'password']);
 
         $body = $loginResponse->getContent();
         $this->assertStringNotContainsString('SQLSTATE', $body);
@@ -129,7 +133,8 @@ class FormRequestValidationAuditTest extends TestCase
             'location' => '',
         ]);
         $roomResponse->assertStatus(422)
-            ->assertJsonPath('status', false);
+            ->assertJsonPath('status', false)
+            ->assertJsonValidationErrors(['name', 'capacity', 'location']);
 
         $roomBody = $roomResponse->getContent();
         $this->assertStringNotContainsString('SQLSTATE', $roomBody);
@@ -147,7 +152,8 @@ class FormRequestValidationAuditTest extends TestCase
         $response = $this->actingAs($admin)->postJson('/api/v1/rooms', [
             'name' => 'Ruang Baru',
         ]);
-        $response->assertStatus(422);
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['capacity', 'location']);
         $errors = collect($response->json('errors'))->pluck('field')->all();
         $this->assertContains('capacity', $errors, 'Field capacity harus divalidasi');
         $this->assertContains('location', $errors, 'Field location harus divalidasi');

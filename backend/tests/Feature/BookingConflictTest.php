@@ -244,7 +244,8 @@ class BookingConflictTest extends TestCase
         ]);
 
         $responseEqual->assertStatus(422)
-            ->assertJsonPath('status', false);
+            ->assertJsonPath('status', false)
+            ->assertJsonValidationErrors(['end_time']);
         $this->assertContains('end_time', array_column($responseEqual->json('errors') ?? [], 'field'));
 
         // Kasus 2: end_time mendahului start_time
@@ -257,7 +258,8 @@ class BookingConflictTest extends TestCase
         ]);
 
         $responseEarlier->assertStatus(422)
-            ->assertJsonPath('status', false);
+            ->assertJsonPath('status', false)
+            ->assertJsonValidationErrors(['end_time']);
         $this->assertContains('end_time', array_column($responseEarlier->json('errors') ?? [], 'field'));
     }
 
@@ -341,7 +343,12 @@ class BookingConflictTest extends TestCase
             'end_time' => $slot['end']->toDateTimeString(),
         ]);
 
-        $response->assertStatus(201);
+        $response->assertStatus(201)
+            ->assertJsonPath('data.title', 'Booking Sukses Pengganti');
+        $this->assertDatabaseHas('bookings', [
+            'id' => $response->json('data.id'),
+            'status' => 'pending',
+        ]);
     }
 
     /**

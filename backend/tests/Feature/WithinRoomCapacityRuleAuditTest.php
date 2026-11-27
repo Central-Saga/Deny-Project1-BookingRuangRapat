@@ -32,6 +32,7 @@ class WithinRoomCapacityRuleAuditTest extends TestCase
         });
 
         $this->assertFalse($failed, 'Rule harus menerima jumlah peserta yang tidak melebihi kapasitas.');
+        $this->assertDatabaseHas('rooms', ['id' => $room->id, 'capacity' => 10]);
     }
 
     public function test_rule_fails_when_participant_count_exceeds_room_capacity(): void
@@ -47,6 +48,7 @@ class WithinRoomCapacityRuleAuditTest extends TestCase
             $errorMessage = $message;
         });
 
+        $this->assertNotEmpty($errorMessage);
         $this->assertSame('Jumlah peserta melebihi kapasitas ruangan yang dipilih.', $errorMessage);
     }
 
@@ -68,7 +70,8 @@ class WithinRoomCapacityRuleAuditTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonPath('status', false);
+            ->assertJsonPath('status', false)
+            ->assertJsonValidationErrors(['participant_count']);
 
         $errors = $response->json('errors') ?? [];
         $fields = array_column($errors, 'field');
