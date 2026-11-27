@@ -14,9 +14,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/up', [HealthController::class, 'check']);
 Route::get('/health', [HealthController::class, 'check']);
 Route::get('/ready', [HealthController::class, 'check']);
+Route::get('/ip', [HealthController::class, 'ip']);
 Route::get('/v1/up', [HealthController::class, 'check']);
 Route::get('/v1/health', [HealthController::class, 'check']);
 Route::get('/v1/ready', [HealthController::class, 'check']);
+Route::get('/v1/ip', [HealthController::class, 'ip']);
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -27,7 +29,7 @@ Route::post('/v1/auth/login', [AuthController::class, 'login'])->middleware('thr
 Route::get('/uploads/download/{path}', [UploadController::class, 'download'])->name('api.uploads.signed-download');
 Route::get('/v1/uploads/download/{path}', [UploadController::class, 'download'])->name('api.v1.uploads.signed-download');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['throttle:60,1,api', 'auth:sanctum'])->scopeBindings()->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     // Audit 496 Parameter 26 (Param 10.8): Logout mencabut token
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -42,7 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/uploads/signed-url', [UploadController::class, 'temporaryUrl']);
 
     // Audit 496 Parameter 7, 16: Route Versioning Prefix /api/v1/ pada Seluruh Rute Booking dan Ruangan
-    Route::prefix('v1')->group(function () {
+    Route::prefix('v1')->scopeBindings()->group(function () {
         Route::post('/uploads', [UploadController::class, 'store']);
         Route::get('/uploads/temporary-url', [UploadController::class, 'temporaryUrl']);
         Route::get('/uploads/signed-url', [UploadController::class, 'temporaryUrl']);
@@ -62,6 +64,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/rooms/{room}', [RoomController::class, 'update']);
         Route::post('/rooms/{room}', [RoomController::class, 'update']);
         Route::delete('/rooms/{room}', [RoomController::class, 'destroy']);
+        Route::get('/rooms/{room}/bookings', [BookingController::class, 'roomBookings'])->scopeBindings();
+        Route::get('/rooms/{room}/bookings/{booking}', [BookingController::class, 'showNested'])->scopeBindings();
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::post('/users', [AdminUserController::class, 'store']);
         Route::match(['put', 'patch', 'post'], '/users/{user}', [AdminUserController::class, 'update']);
