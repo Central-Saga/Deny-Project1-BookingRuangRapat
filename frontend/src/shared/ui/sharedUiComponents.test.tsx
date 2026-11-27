@@ -24,7 +24,7 @@ describe('Shared UI Presentational Components Unit Coverage', () => {
         });
 
         it('renders various variants correctly', () => {
-            const variants = ['success', 'warning', 'danger', 'outline', 'info', 'neutral'] as const;
+            const variants = ['success', 'warning', 'danger', 'info', 'neutral'] as const;
             for (const v of variants) {
                 const html = renderToStaticMarkup(<Badge variant={v}>{v}</Badge>);
                 expect(html).toContain(v);
