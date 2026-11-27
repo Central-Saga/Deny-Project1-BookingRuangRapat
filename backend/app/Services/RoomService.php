@@ -44,7 +44,13 @@ class RoomService implements RoomServiceInterface
         $payload = $data instanceof CreateRoomDTO ? $data->toArray() : $data;
 
         $room = DB::transaction(function () use ($payload): Room {
-            return Room::create($payload);
+            $created = Room::create($payload);
+
+            activity('room')
+                ->performedOn($created)
+                ->log('Ruangan baru dibuat');
+
+            return $created;
         });
 
         Cache::forget('booking_availability');
@@ -86,6 +92,10 @@ class RoomService implements RoomServiceInterface
         DB::transaction(function () use ($room): void {
             $room->update(['is_active' => false]);
             $room->delete();
+
+            activity('room')
+                ->performedOn($room)
+                ->log('Ruangan dinonaktifkan / dihapus');
         });
 
         Cache::forget('booking_availability');

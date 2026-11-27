@@ -29,7 +29,14 @@ class AuthService implements AuthServiceInterface
         }
 
         $token = DB::transaction(function () use ($user): string {
-            return $user->createToken('auth_token')->plainTextToken;
+            $created = $user->createToken('auth_token')->plainTextToken;
+
+            activity('auth')
+                ->performedOn($user)
+                ->causedBy($user)
+                ->log('Pengguna berhasil login');
+
+            return $created;
         });
 
         $cookieMinutes = (int) config('sanctum.expiration', 1440);
@@ -63,6 +70,11 @@ class AuthService implements AuthServiceInterface
             } else {
                 $user->tokens()->delete();
             }
+
+            activity('auth')
+                ->performedOn($user)
+                ->causedBy($user)
+                ->log('Pengguna berhasil logout');
         });
 
         Cache::forget("user_session_{$user->id}");
@@ -82,6 +94,11 @@ class AuthService implements AuthServiceInterface
 
             // Revoke all existing tokens for this user so old tokens become dead
             $user->tokens()->delete();
+
+            activity('auth')
+                ->performedOn($user)
+                ->causedBy($user)
+                ->log('Pengguna mengubah password');
         });
 
         Cache::forget("user_session_{$user->id}");
