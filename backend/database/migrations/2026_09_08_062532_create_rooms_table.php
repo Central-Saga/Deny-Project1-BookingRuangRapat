@@ -12,8 +12,8 @@ return new class extends Migration
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->integer('capacity');
-            $table->string('location');
+            $table->integer('capacity')->default(1);
+            $table->string('location')->default('Belum ditentukan');
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->softDeletes();

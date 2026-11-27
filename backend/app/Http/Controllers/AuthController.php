@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\DTOs\ChangePasswordDTO;
+use App\Http\Requests\ChangePasswordRequest;
+use App\Http\Requests\LoginRequest;
 use App\Services\Contracts\AuthServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Controller Otentikasi (Audit 496 Parameter ARC: Thin Controller, 0 query).
@@ -18,12 +19,9 @@ class AuthController extends Controller
         protected AuthServiceInterface $authService
     ) {}
 
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        $credentials = $request->validated();
 
         $authData = $this->authService->attemptLogin($credentials['email'], $credentials['password']);
 
@@ -80,40 +78,12 @@ class AuthController extends Controller
             ->withoutCookie('token', '/');
     }
 
-    public function changePassword(Request $request): JsonResponse
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
     {
         $user = $request->user();
         abort_unless($user, 401, 'Autentikasi diperlukan.');
 
-        $currentPassword = $request->input('current_password') ?? $request->input('old_password');
-        $newPassword = $request->input('password') ?? $request->input('new_password');
-        $confirmation = $request->input('password_confirmation') ?? $request->input('new_password_confirmation');
-
-        $validator = Validator::make([
-            'current_password' => $currentPassword,
-            'password' => $newPassword,
-            'password_confirmation' => $confirmation,
-        ], [
-            'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8'],
-        ]);
-
-        if ($confirmation !== null) {
-            $validator->sometimes('password_confirmation', ['same:password'], fn () => $confirmation !== null);
-        }
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'status' => false,
-                'message' => 'Validasi gagal.',
-                'data' => null,
-                'errors' => collect($validator->errors())->map(fn ($msgs, $field) => [
-                    'field' => $field,
-                    'message' => $msgs[0],
-                ])->values()->all(),
-            ], 422);
-        }
+        $currentPassword = (string) ($request->input('current_password') ?? $request->input('old_password'));
 
         if (! Hash::check($currentPassword, $user->password)) {
             return response()->json([

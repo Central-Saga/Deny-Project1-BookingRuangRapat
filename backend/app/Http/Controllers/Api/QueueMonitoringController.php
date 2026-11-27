@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PaginationRequest;
 use App\Services\Contracts\QueueMonitoringServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,16 +32,13 @@ class QueueMonitoringController extends Controller
         ]);
     }
 
-    public function failedJobs(Request $request): JsonResponse
+    public function failedJobs(PaginationRequest $request): JsonResponse
     {
         if ($request->user()) {
             abort_unless($request->user()->role === 'admin', 403, 'Hanya admin yang dapat melihat failed jobs.');
         }
 
-        $pagination = $request->validate([
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
+        $pagination = $request->validated();
 
         $jobs = $this->queueService->getFailedJobs((int) ($pagination['per_page'] ?? 25));
 

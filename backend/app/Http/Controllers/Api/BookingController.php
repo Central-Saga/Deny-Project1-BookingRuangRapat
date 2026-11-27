@@ -6,13 +6,13 @@ use App\DTOs\CreateBookingDTO;
 use App\DTOs\UpdateBookingDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CancelBookingRequest;
+use App\Http\Requests\PaginationRequest;
 use App\Http\Requests\RejectBookingRequest;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
 use App\Services\Contracts\BookingServiceInterface;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class BookingController extends Controller
@@ -21,9 +21,9 @@ class BookingController extends Controller
         protected BookingServiceInterface $bookingService
     ) {}
 
-    public function index(Request $request)
+    public function index(PaginationRequest $request)
     {
-        $p = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
+        $p = $request->validated();
         $bookings = $this->bookingService->getBookings(
             $request->user(),
             $request->filled('date') ? $request->string('date')->toString() : null,
@@ -42,9 +42,9 @@ class BookingController extends Controller
         return (new BookingResource($booking))->additional(['status' => true, 'message' => 'Operasi booking berhasil.', 'errors' => []]);
     }
 
-    public function availability(Request $request)
+    public function availability(PaginationRequest $request)
     {
-        $p = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
+        $p = $request->validated();
         $bookings = $this->bookingService->getAvailability((int) ($p['per_page'] ?? 25));
 
         return BookingResource::collection($bookings)->additional(['success' => true, 'status' => true, 'message' => 'Data ketersediaan berhasil dimuat.', 'errors' => []]);
