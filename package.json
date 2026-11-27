@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "Saga MeetSpace - Sistem Booking Ruang Rapat (Audit 496 Frontend Param 0.11: 0 CVE)",
+  "engines": {
+    "node": "20",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
