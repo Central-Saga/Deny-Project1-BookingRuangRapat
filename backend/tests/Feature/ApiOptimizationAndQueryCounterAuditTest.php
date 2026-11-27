@@ -128,7 +128,7 @@ class ApiOptimizationAndQueryCounterAuditTest extends TestCase
         $this->assertLessThanOrEqual(10, $queriesBookings, "Query count untuk GET /api/v1/bookings ({$queriesBookings}) melebihi ambang batas ≤ 10");
 
         // Endpoint 2: GET /api/v1/bookings/availability
-        Cache::flush();
+        Cache::forget('booking_availability');
         DB::flushQueryLog();
         DB::enableQueryLog();
         $responseAvailability = $this->actingAs($admin)->getJson('/api/v1/bookings/availability?page=1&per_page=25');

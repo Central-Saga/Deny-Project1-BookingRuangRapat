@@ -9,6 +9,7 @@ use App\Services\Contracts\RoomServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Service Layer untuk Pengelolaan Ruang Rapat.
@@ -25,7 +26,7 @@ class RoomService implements RoomServiceInterface
         $roleKey = $role === 'admin' ? 'admin' : 'public';
         $cacheKey = "rooms_list_{$roleKey}_p{$page}_l{$perPage}";
 
-        return Cache::remember($cacheKey, 60, function () use ($role, $perPage): LengthAwarePaginator {
+        $fetcher = function () use ($role, $perPage): LengthAwarePaginator {
             $query = Room::query();
 
             if ($role !== 'admin') {
@@ -33,7 +34,16 @@ class RoomService implements RoomServiceInterface
             }
 
             return $query->latest()->orderByDesc('id')->paginate($perPage);
-        });
+        };
+
+        // Fail-open: jika Redis/Cache store tidak tersedia, eksekusi query langsung ke database
+        try {
+            return Cache::remember($cacheKey, 60, $fetcher);
+        } catch (\Throwable $e) {
+            Log::warning('RoomService Cache fail-open fallback to DB: '.$e->getMessage());
+
+            return $fetcher();
+        }
     }
 
     /**

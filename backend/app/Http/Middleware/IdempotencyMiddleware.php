@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -32,38 +33,46 @@ class IdempotencyMiddleware
         $userId = $request->user()?->id ?? $request->ip() ?? 'anonymous';
         $cacheKey = 'idempotency_res:'.hash('sha256', "{$idempotencyKey}:{$userId}:{$request->method()}:{$request->path()}");
 
-        $cached = Cache::get($cacheKey);
-        if ($cached && is_array($cached)) {
-            $response = response($cached['content'], (int) $cached['status']);
-            $headers = array_merge($cached['headers'] ?? [], [
-                'X-Idempotent-Replayed' => 'true',
-                'Idempotent-Replayed' => 'true',
-            ]);
+        try {
+            $cached = Cache::get($cacheKey);
+            if ($cached && is_array($cached)) {
+                $response = response($cached['content'], (int) $cached['status']);
+                $headers = array_merge($cached['headers'] ?? [], [
+                    'X-Idempotent-Replayed' => 'true',
+                    'Idempotent-Replayed' => 'true',
+                ]);
 
-            foreach ($headers as $headerName => $headerValue) {
-                $response->header($headerName, (string) $headerValue);
+                foreach ($headers as $headerName => $headerValue) {
+                    $response->header($headerName, (string) $headerValue);
+                }
+
+                return $response;
             }
-
-            return $response;
+        } catch (\Throwable $e) {
+            Log::warning('IdempotencyMiddleware cache get fail-open: '.$e->getMessage());
         }
 
         $response = $next($request);
 
         // Hanya cache respons mutasi yang sukses (HTTP 200 - 299)
         if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300) {
-            $content = $response->getContent();
-            $contentType = $response->headers->get('Content-Type') ?? 'application/json';
+            try {
+                $content = $response->getContent();
+                $contentType = $response->headers->get('Content-Type') ?? 'application/json';
 
-            Cache::put($cacheKey, [
-                'content' => $content,
-                'status' => $response->getStatusCode(),
-                'headers' => [
-                    'Content-Type' => $contentType,
-                ],
-            ], now()->addHours(24));
+                Cache::put($cacheKey, [
+                    'content' => $content,
+                    'status' => $response->getStatusCode(),
+                    'headers' => [
+                        'Content-Type' => $contentType,
+                    ],
+                ], now()->addHours(24));
 
-            $response->headers->set('X-Idempotent-Replayed', 'false');
-            $response->headers->set('Idempotent-Replayed', 'false');
+                $response->headers->set('X-Idempotent-Replayed', 'false');
+                $response->headers->set('Idempotent-Replayed', 'false');
+            } catch (\Throwable $e) {
+                Log::warning('IdempotencyMiddleware cache put fail-open: '.$e->getMessage());
+            }
         }
 
         return $response;

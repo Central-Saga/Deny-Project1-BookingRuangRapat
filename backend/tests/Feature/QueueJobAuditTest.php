@@ -28,7 +28,8 @@ class QueueJobAuditTest extends TestCase
         $this->assertSame('booking-notification-999-created', $job->uniqueId());
 
         // First execution -> produces 1 effect
-        Cache::flush();
+        Cache::forget('effect_count:booking_notification:999:created');
+        Cache::forget('idempotency:booking_notification:999:created');
         $firstResult = $job->handle();
         $this->assertTrue($firstResult);
         $this->assertSame(1, (int) Cache::get('effect_count:booking_notification:999:created'));
