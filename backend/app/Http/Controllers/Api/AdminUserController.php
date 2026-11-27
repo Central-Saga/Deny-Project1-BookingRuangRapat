@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PaginationRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
@@ -10,14 +11,11 @@ use Illuminate\Support\Facades\DB;
 
 class AdminUserController extends Controller
 {
-    public function index()
+    public function index(PaginationRequest $request)
     {
-        abort_unless(request()->user()->role === 'admin', 403, 'Hanya admin yang dapat mengelola pengguna.');
+        abort_unless($request->user()->role === 'admin', 403, 'Hanya admin yang dapat mengelola pengguna.');
 
-        $pagination = request()->validate([
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
+        $pagination = $request->validated();
 
         $users = User::query()->latest()->orderByDesc('id')->paginate(
             (int) ($pagination['per_page'] ?? 25),

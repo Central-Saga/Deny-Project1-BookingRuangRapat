@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FileUploadRequest;
+use App\Http\Requests\TemporaryUrlRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -64,13 +65,8 @@ class UploadController extends Controller
     /**
      * Menghasilkan signed temporary URL untuk berkas privat.
      */
-    public function temporaryUrl(Request $request): JsonResponse
+    public function temporaryUrl(TemporaryUrlRequest $request): JsonResponse
     {
-        $request->validate([
-            'path' => ['required', 'string'],
-            'expires_in' => ['sometimes', 'integer', 'min:1', 'max:1440'],
-        ]);
-
         $path = $request->string('path')->toString();
         $minutes = $request->integer('expires_in', 60);
 

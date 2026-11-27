@@ -49,6 +49,7 @@ class StoreBookingRequest extends FormRequest
         $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
 
         return [
+            'user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'room_id' => $isUpdate ? ['sometimes', 'exists:rooms,id,deleted_at,NULL,is_active,1'] : ['required', 'exists:rooms,id,deleted_at,NULL,is_active,1'],
             'title' => $isUpdate ? ['sometimes', 'string', 'max:255'] : ['required', 'string', 'max:255'],
             'participant_count' => $isUpdate ? ['sometimes', 'integer', 'min:1', new WithinRoomCapacityRule] : ['required', 'integer', 'min:1', new WithinRoomCapacityRule],

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\DTOs\CreateRoomDTO;
 use App\DTOs\UpdateRoomDTO;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PaginationRequest;
 use App\Http\Requests\StoreRoomRequest;
+use App\Http\Requests\UpdateRoomRequest;
 use App\Http\Resources\RoomResource;
 use App\Models\Room;
 use App\Services\Contracts\RoomServiceInterface;
@@ -16,15 +18,12 @@ class RoomController extends Controller
         protected RoomServiceInterface $roomService
     ) {}
 
-    public function index()
+    public function index(PaginationRequest $request)
     {
-        $pagination = request()->validate([
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
-        ]);
+        $pagination = $request->validated();
 
         $rooms = $this->roomService->getRooms(
-            request()->user()?->role,
+            $request->user()?->role,
             (int) ($pagination['per_page'] ?? 25)
         );
 
@@ -39,10 +38,6 @@ class RoomController extends Controller
 
     public function store(StoreRoomRequest $request)
     {
-        $request->validate([
-            'image' => 'sometimes|nullable|file|image|mimetypes:image/jpeg,image/png,image/webp|dimensions:min_width=100,min_height=100,max_width=4000,max_height=4000|max:5120',
-        ]);
-
         $dto = CreateRoomDTO::fromRequest($request);
         $room = $this->roomService->createRoom($dto);
 
@@ -54,7 +49,7 @@ class RoomController extends Controller
         return new RoomResource($room);
     }
 
-    public function updateCollection(StoreRoomRequest $request)
+    public function updateCollection(UpdateRoomRequest $request)
     {
         $id = $request->input('id') ?? $request->input('room_id');
         if ($id && ($room = $this->roomService->findRoom($id))) {
@@ -64,12 +59,8 @@ class RoomController extends Controller
         abort(422, 'ID ruangan harus disertakan.');
     }
 
-    public function update(StoreRoomRequest $request, Room $room)
+    public function update(UpdateRoomRequest $request, Room $room)
     {
-        $request->validate([
-            'image' => 'sometimes|nullable|file|image|mimetypes:image/jpeg,image/png,image/webp|dimensions:min_width=100,min_height=100,max_width=4000,max_height=4000|max:5120',
-        ]);
-
         $dto = UpdateRoomDTO::fromRequest($request);
         $updatedRoom = $this->roomService->updateRoom($room, $dto);
 
