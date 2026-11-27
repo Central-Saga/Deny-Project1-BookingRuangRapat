@@ -51,6 +51,7 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:coverage": "php artisan test --coverage --min=60",
         "lint": "vendor/bin/pint --test",
         "pint": "vendor/bin/pint",
         "phpstan": "vendor/bin/phpstan analyse",

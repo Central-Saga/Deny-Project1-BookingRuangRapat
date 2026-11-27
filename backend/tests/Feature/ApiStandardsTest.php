@@ -77,6 +77,7 @@ class ApiStandardsTest extends TestCase
             'Access-Control-Request-Headers' => 'Authorization',
         ])->options('/api/v1/rooms');
 
+        $response->assertStatus(204);
         $response->assertHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
     }
 
@@ -87,6 +88,7 @@ class ApiStandardsTest extends TestCase
             'Access-Control-Request-Method' => 'GET',
         ])->options('/api/v1/rooms');
 
+        $response->assertStatus(204);
         $this->assertFalse($response->headers->has('Access-Control-Allow-Origin'));
     }
 

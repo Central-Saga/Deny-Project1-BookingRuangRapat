@@ -148,14 +148,18 @@ class DomainInvariantValidationAuditTest extends TestCase
 
     public function test_domain_room_model_rejects_negative_capacity_directly(): void
     {
-        $this->expectException(HttpException::class);
-        $this->expectExceptionMessage('Kapasitas ruangan harus minimal 1 orang dan tidak boleh negatif.');
-
         $room = new Room;
         $room->name = 'Direct Domain Test';
         $room->location = 'Lantai 3';
-        $room->capacity = -5;
-        $room->save();
+
+        try {
+            $room->capacity = -5;
+            $room->save();
+            $this->fail('Expected HttpException was not thrown for negative capacity.');
+        } catch (HttpException $e) {
+            $this->assertSame(422, $e->getStatusCode());
+            $this->assertStringContainsString('Kapasitas ruangan', $e->getMessage());
+        }
     }
 
     public function test_domain_booking_model_rejects_negative_participant_count_directly(): void
@@ -165,17 +169,21 @@ class DomainInvariantValidationAuditTest extends TestCase
         $start = $this->getFutureWeekday();
         $end = (clone $start)->addHours(2);
 
-        $this->expectException(HttpException::class);
-        $this->expectExceptionMessage('Jumlah peserta rapat harus minimal 1 orang dan tidak boleh negatif.');
-
         $booking = new Booking;
         $booking->user_id = $employee->id;
         $booking->room_id = $room->id;
         $booking->title = 'Direct Domain Booking Test';
         $booking->start_time = $start;
         $booking->end_time = $end;
-        $booking->participant_count = -1;
-        $booking->save();
+
+        try {
+            $booking->participant_count = -1;
+            $booking->save();
+            $this->fail('Expected HttpException was not thrown for negative participant count.');
+        } catch (HttpException $e) {
+            $this->assertSame(422, $e->getStatusCode());
+            $this->assertStringContainsString('Jumlah peserta rapat', $e->getMessage());
+        }
     }
 
     public function test_method_not_allowed_with_negative_payload_is_rejected_with_422(): void

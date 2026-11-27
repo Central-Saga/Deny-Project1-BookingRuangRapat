@@ -30,6 +30,7 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
         });
 
         $this->assertFalse($failed, 'Rule harus menerima pemesanan pada jam kerja kantor.');
+        $this->assertTrue($validTime->isWeekday(), 'Waktu harus merupakan hari kerja.');
     }
 
     public function test_rule_fails_before_0800_wita(): void
@@ -44,6 +45,7 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
             $errorMessage = $message;
         });
 
+        $this->assertNotEmpty($errorMessage);
         $this->assertSame('Pemesanan hanya dapat dilakukan pada hari kerja pukul 08:00 sampai 17:00 WITA.', $errorMessage);
     }
 
@@ -59,6 +61,7 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
             $errorMessage = $message;
         });
 
+        $this->assertNotEmpty($errorMessage);
         $this->assertSame('Pemesanan hanya dapat dilakukan pada hari kerja pukul 08:00 sampai 17:00 WITA.', $errorMessage);
     }
 
@@ -74,6 +77,7 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
             $errorMessage = $message;
         });
 
+        $this->assertNotEmpty($errorMessage);
         $this->assertSame('Pemesanan hanya dapat dilakukan pada hari kerja pukul 08:00 sampai 17:00 WITA.', $errorMessage);
     }
 
@@ -95,7 +99,8 @@ class WithinWorkingHoursRuleAuditTest extends TestCase
         ]);
 
         $responseEarly->assertStatus(422)
-            ->assertJsonPath('status', false);
+            ->assertJsonPath('status', false)
+            ->assertJsonValidationErrors(['start_time']);
 
         // Coba pesan pada jam kerja (10:00 WITA) -> Sukses 201
         $workStart = Carbon::now('Asia/Makassar')->next(Carbon::MONDAY)->setTime(10, 0)->setTimezone(config('app.timezone'));

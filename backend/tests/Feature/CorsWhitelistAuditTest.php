@@ -43,6 +43,7 @@ class CorsWhitelistAuditTest extends TestCase
                 'Access-Control-Request-Headers' => 'Authorization, Content-Type',
             ])->options('/api/v1/rooms');
 
+            $response->assertStatus(204);
             $response->assertHeader('Access-Control-Allow-Origin', $origin);
         }
     }
@@ -62,6 +63,7 @@ class CorsWhitelistAuditTest extends TestCase
                 'Access-Control-Request-Method' => 'POST',
             ])->options('/api/v1/bookings');
 
+            $response->assertStatus(204);
             $this->assertFalse(
                 $response->headers->has('Access-Control-Allow-Origin'),
                 "Origin [{$origin}] must NOT be allowed by CORS header"

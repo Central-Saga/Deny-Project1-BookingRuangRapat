@@ -77,5 +77,6 @@ class RouteVersioningPrefixAuditTest extends TestCase
 
         $response = $this->actingAs($user)->getJson('/api/v1/bookings/availability');
         $response->assertOk();
+        $response->assertJsonStructure(['status', 'data']);
     }
 }

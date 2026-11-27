@@ -21,6 +21,7 @@ class Psr4StoreRoomRequestAuditTest extends TestCase
     {
         $backendPath = base_path('app/Http/Requests/StoreRoomgRequest.php');
         $this->assertFileDoesNotExist($backendPath, 'File StoreRoomgRequest.php with typo must not exist.');
+        $this->assertFalse(file_exists($backendPath));
     }
 
     public function test_storeroomrequest_file_exists_and_conforms_to_psr4(): void

@@ -33,6 +33,7 @@ class RouteClosureAuditTest extends TestCase
         }
 
         // Standard backend 3.1: harus 0 route yang menggunakan closure handler
+        $this->assertIsArray($closureRoutes);
         $this->assertCount(
             0,
             $closureRoutes,
@@ -66,6 +67,7 @@ class RouteClosureAuditTest extends TestCase
             }
         }
 
+        $this->assertIsArray($foundMatches);
         $this->assertCount(
             0,
             $foundMatches,
@@ -77,6 +79,7 @@ class RouteClosureAuditTest extends TestCase
     {
         $response = $this->get('/');
         $response->assertOk();
+        $response->assertViewIs('welcome');
     }
 
     public function test_route_cache_command_executes_successfully(): void
@@ -85,6 +88,7 @@ class RouteClosureAuditTest extends TestCase
         $this->assertSame(0, $exitCode, 'Artisan route:cache gagal dieksekusi.');
 
         // Clean up cache after test
-        Artisan::call('route:clear');
+        $clearCode = Artisan::call('route:clear');
+        $this->assertSame(0, $clearCode);
     }
 }

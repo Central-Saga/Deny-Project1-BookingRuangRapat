@@ -52,6 +52,9 @@ class ThinControllerServiceArchitectureAuditTest extends TestCase
             'BookingController.php' => app_path('Http/Controllers/Api/BookingController.php'),
         ];
 
+        $this->assertNotEmpty($controllers);
+        $this->assertCount(3, $controllers);
+
         $queryPatterns = [
             '/\bDB::/',
             '/->where\(/',
