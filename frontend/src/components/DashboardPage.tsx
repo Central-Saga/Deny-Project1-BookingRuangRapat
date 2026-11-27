@@ -191,7 +191,7 @@ export default function Dashboard() {
                 const currentUser = await getCurrentUser();
                 setUser(currentUser);
                 if (currentUser.role === 'admin' && pathname !== '/admin') router.replace('/admin');
-                if (currentUser.role === 'karyawan' && pathname === '/admin') router.replace('/dashboard');
+                if (currentUser.role === 'karyawan' && (pathname === '/admin' || pathname === '/' || pathname === '/login')) router.replace('/dashboard');
                 if (currentUser.role !== 'admin') await loadData();
             } catch (authFailure: unknown) {
                 if (hasToken()) {
@@ -218,8 +218,11 @@ export default function Dashboard() {
             saveToken(result.token);
             setLogoutConfirm(false);
             setUser(result.user);
-            if (result.user.role === 'admin') router.replace('/admin');
-            else if (pathname === '/admin' || pathname === '/') router.replace('/dashboard');
+            if (result.user.role === 'admin') {
+                router.replace('/admin');
+            } else {
+                router.replace('/dashboard');
+            }
             await loadData();
         } catch (loginFailure: unknown) {
             if (loginFailure instanceof ApiError && Object.keys(loginFailure.fieldErrors).length > 0) {
@@ -348,6 +351,22 @@ export default function Dashboard() {
         openBookingModal(date);
     }
 
+    // Audit 496 Parameter USE (Issue #186): Menutup modal / dialog dengan tombol Escape untuk aksesibilitas keyboard
+    useEffect(() => {
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === 'Escape') {
+                if (conflictError) setConflictError(null);
+                else if (calendarNotice) setCalendarNotice(null);
+                else if (logoutConfirm) setLogoutConfirm(false);
+                else if (cancelTarget) setCancelTarget(null);
+                else if (deleteTarget) setDeleteTarget(null);
+                else if (bookingModalOpen) cancelEditing();
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [conflictError, calendarNotice, logoutConfirm, cancelTarget, deleteTarget, bookingModalOpen]);
+
     async function confirmCancel() {
         if (!cancelTarget || cancellationReason.trim().length < 10 || cancelling) return;
         try {
@@ -386,98 +405,109 @@ export default function Dashboard() {
     if (authError) return <main className="flex min-h-screen items-center justify-center bg-[#0b3524] p-6 text-white"><div role="alert" className="w-full max-w-md rounded-2xl border border-rose-500/30 p-8 text-center"><h1 className="text-lg font-bold">Server tidak dapat dihubungi</h1><p className="mt-3 text-sm text-emerald-100/70">{authError}</p><button type="button" onClick={() => setAuthRetry((n) => n + 1)} className="mt-6 rounded-xl bg-[#f57c00] px-5 py-3 font-semibold text-slate-950">Coba lagi</button></div></main>;
 
     if (!user) return (
-        <main className="flex min-h-screen items-center justify-center bg-[#0b3524] px-4 py-8 sm:px-6">
-            <div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-emerald-900 bg-[#0b3524] shadow-[0_24px_70px_rgba(0,0,0,0.4)] lg:grid-cols-[1.05fr_0.95fr]">
-                <div className="relative hidden overflow-hidden bg-[#0b3524] p-12 text-white lg:block">
-                    <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full border-[28px] border-emerald-300/10" />
-                    <div className="relative flex h-full flex-col justify-between">
-                        <div>
-                            <div className="mb-20 flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f57c00] font-black text-slate-950">SM</div>
-                                <span className="text-lg font-bold tracking-tight">Saga MeetSpace</span>
+        <>
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-xl focus:bg-[#f57c00] focus:px-4 focus:py-2.5 focus:text-sm focus:font-bold focus:text-slate-950 focus:shadow-2xl focus:outline-none focus:ring-4 focus:ring-emerald-400"
+            >
+                Lewati ke konten utama
+            </a>
+            <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center bg-[#0b3524] px-4 py-8 sm:px-6 outline-none">
+                <div className="grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-emerald-900 bg-[#0b3524] shadow-[0_24px_70px_rgba(0,0,0,0.4)] lg:grid-cols-[1.05fr_0.95fr]">
+                    <div className="relative hidden overflow-hidden bg-[#0b3524] p-12 text-white lg:block">
+                        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full border-[28px] border-emerald-300/10" />
+                        <div className="relative flex h-full flex-col justify-between">
+                            <div>
+                                <div className="mb-20 flex items-center gap-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f57c00] font-black text-slate-950">SM</div>
+                                    <span className="text-lg font-bold tracking-tight">Saga MeetSpace</span>
+                                </div>
+                                <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#f57c00]">Akses ruang rapat</p>
+                                <h1 className="max-w-md text-4xl font-bold leading-tight tracking-tight text-white">Booking Cepat, <span className="text-[#f57c00]">Kolaborasi Hebat</span></h1>
+                                <p className="mt-5 max-w-sm text-sm leading-6 text-emerald-100/70">Temukan ruangan yang tepat, susun jadwal rapat, dan jaga kolaborasi tim tetap berjalan lancar.</p>
                             </div>
-                            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#f57c00]">Akses ruang rapat</p>
-                            <h1 className="max-w-md text-4xl font-bold leading-tight tracking-tight text-white">Booking Cepat, <span className="text-[#f57c00]">Kolaborasi Hebat</span></h1>
-                            <p className="mt-5 max-w-sm text-sm leading-6 text-emerald-100/70">Temukan ruangan yang tepat, susun jadwal rapat, dan jaga kolaborasi tim tetap berjalan lancar.</p>
                         </div>
+                    </div>
+                    <div className="bg-[#0b3524] p-7 text-white sm:p-12">
+                        <div className="mb-12 flex items-center gap-3 lg:hidden">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f57c00] font-black text-slate-950">SM</div>
+                            <span className="font-bold text-white">Saga MeetSpace</span>
+                        </div>
+                        <div className="mb-8">
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[#f57c00]">Portal akses</p>
+                            <h2 className="text-3xl font-bold tracking-tight text-white">Selamat datang kembali</h2>
+                            <p className="mt-2 text-sm leading-6 text-emerald-100/70">Masuk untuk mengatur jadwal dan ruang rapat Anda.</p>
+                        </div>
+                        {loginError && <div role="alert" aria-live="assertive" className="mb-5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{loginError}</div>}
+                        <form onSubmit={handleLogin} className="space-y-5" aria-busy={loggingIn} noValidate>
+                            <div role="status" aria-live="polite" className="sr-only">
+                                {loggingIn ? 'Sedang memverifikasi kredensial login...' : ''}
+                            </div>
+                            <div>
+                                <label htmlFor="email" className="mb-2 block text-sm font-semibold text-emerald-100">Email</label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    required
+                                    autoComplete="email"
+                                    disabled={loggingIn}
+                                    aria-invalid={Boolean(loginFieldErrors.email)}
+                                    aria-describedby={loginFieldErrors.email ? 'email-error' : undefined}
+                                    value={loginData.email}
+                                    onChange={(event) => {
+                                        setLoginData({ ...loginData, email: event.target.value });
+                                        if (loginFieldErrors.email) setLoginFieldErrors((prev) => ({ ...prev, email: '' }));
+                                    }}
+                                    className={`w-full rounded-xl border ${loginFieldErrors.email ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f57c00] focus:ring-4 focus:ring-[#f57c00]/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f57c00]/50 disabled:opacity-60`}
+                                    placeholder="nama@perusahaan.com"
+                                />
+                                {loginFieldErrors.email && <p id="email-error" role="alert" data-testid="error-email" className="mt-1.5 text-xs font-medium text-rose-400">{loginFieldErrors.email}</p>}
+                            </div>
+                            <div>
+                                <label htmlFor="password" className="mb-2 block text-sm font-semibold text-emerald-100">Password</label>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    required
+                                    autoComplete="current-password"
+                                    disabled={loggingIn}
+                                    aria-invalid={Boolean(loginFieldErrors.password)}
+                                    aria-describedby={loginFieldErrors.password ? 'password-error' : undefined}
+                                    value={loginData.password}
+                                    onChange={(event) => {
+                                        setLoginData({ ...loginData, password: event.target.value });
+                                        if (loginFieldErrors.password) setLoginFieldErrors((prev) => ({ ...prev, password: '' }));
+                                    }}
+                                    className={`w-full rounded-xl border ${loginFieldErrors.password ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f57c00] focus:ring-4 focus:ring-[#f57c00]/30 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f57c00]/50 disabled:opacity-60`}
+                                    placeholder="Masukkan password Anda"
+                                />
+                                {loginFieldErrors.password && <p id="password-error" role="alert" data-testid="error-password" className="mt-1.5 text-xs font-medium text-rose-400">{loginFieldErrors.password}</p>}
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loggingIn}
+                                aria-busy={loggingIn}
+                                data-loading={loggingIn}
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#f57c00] px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#f59e0b] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b3524] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {loggingIn ? (
+                                    <>
+                                        <svg className="h-4 w-4 animate-spin text-slate-950" viewBox="0 0 24 24" fill="none">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                        </svg>
+                                        <span>Memverifikasi...</span>
+                                    </>
+                                ) : (
+                                    'Masuk'
+                                )}
+                            </button>
+                        </form>
+                        <p className="mt-7 text-center text-xs leading-5 text-emerald-200/50">Gunakan akun yang telah didaftarkan oleh perusahaan.</p>
                     </div>
                 </div>
-                <div className="bg-[#0b3524] p-7 text-white sm:p-12">
-                    <div className="mb-12 flex items-center gap-3 lg:hidden">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f57c00] font-black text-slate-950">SM</div>
-                        <span className="font-bold text-white">Saga MeetSpace</span>
-                    </div>
-                    <div className="mb-8">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[#f57c00]">Portal akses</p>
-                        <h2 className="text-3xl font-bold tracking-tight text-white">Selamat datang kembali</h2>
-                        <p className="mt-2 text-sm leading-6 text-emerald-100/70">Masuk untuk mengatur jadwal dan ruang rapat Anda.</p>
-                    </div>
-                    {loginError && <div role="alert" className="mb-5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{loginError}</div>}
-                    <form onSubmit={handleLogin} className="space-y-5" aria-busy={loggingIn} noValidate>
-                        <div>
-                            <label htmlFor="email" className="mb-2 block text-sm font-semibold text-emerald-100">Email</label>
-                            <input
-                                id="email"
-                                type="email"
-                                required
-                                autoComplete="email"
-                                disabled={loggingIn}
-                                aria-invalid={Boolean(loginFieldErrors.email)}
-                                aria-describedby={loginFieldErrors.email ? 'email-error' : undefined}
-                                value={loginData.email}
-                                onChange={(event) => {
-                                    setLoginData({ ...loginData, email: event.target.value });
-                                    if (loginFieldErrors.email) setLoginFieldErrors((prev) => ({ ...prev, email: '' }));
-                                }}
-                                className={`w-full rounded-xl border ${loginFieldErrors.email ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f57c00] focus:ring-4 focus:ring-[#f57c00]/20 disabled:opacity-60`}
-                                placeholder="nama@perusahaan.com"
-                            />
-                            {loginFieldErrors.email && <p id="email-error" role="alert" data-testid="error-email" className="mt-1.5 text-xs font-medium text-rose-400">{loginFieldErrors.email}</p>}
-                        </div>
-                        <div>
-                            <label htmlFor="password" className="mb-2 block text-sm font-semibold text-emerald-100">Password</label>
-                            <input
-                                id="password"
-                                type="password"
-                                required
-                                autoComplete="current-password"
-                                disabled={loggingIn}
-                                aria-invalid={Boolean(loginFieldErrors.password)}
-                                aria-describedby={loginFieldErrors.password ? 'password-error' : undefined}
-                                value={loginData.password}
-                                onChange={(event) => {
-                                    setLoginData({ ...loginData, password: event.target.value });
-                                    if (loginFieldErrors.password) setLoginFieldErrors((prev) => ({ ...prev, password: '' }));
-                                }}
-                                className={`w-full rounded-xl border ${loginFieldErrors.password ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-emerald-800'} bg-emerald-950/60 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f57c00] focus:ring-4 focus:ring-[#f57c00]/20 disabled:opacity-60`}
-                                placeholder="Masukkan password Anda"
-                            />
-                            {loginFieldErrors.password && <p id="password-error" role="alert" data-testid="error-password" className="mt-1.5 text-xs font-medium text-rose-400">{loginFieldErrors.password}</p>}
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={loggingIn}
-                            aria-busy={loggingIn}
-                            data-loading={loggingIn}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#f57c00] px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-[#d96800] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {loggingIn ? (
-                                <>
-                                    <svg className="h-4 w-4 animate-spin text-slate-950" viewBox="0 0 24 24" fill="none">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                                    </svg>
-                                    <span>Memverifikasi...</span>
-                                </>
-                            ) : (
-                                'Masuk'
-                            )}
-                        </button>
-                    </form>
-                    <p className="mt-7 text-center text-xs leading-5 text-emerald-200/50">Gunakan akun yang telah didaftarkan oleh perusahaan.</p>
-                </div>
-            </div>
-        </main>
+            </main>
+        </>
     );
 
     if (user.role === 'admin') return <AdminDashboardPage user={user} />;
@@ -487,6 +517,12 @@ export default function Dashboard() {
 
     return (
         <div className="min-h-screen bg-[#0b3524] text-white selection:bg-[#f57c00] selection:text-slate-950">
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-xl focus:bg-[#f57c00] focus:px-4 focus:py-2.5 focus:text-sm focus:font-bold focus:text-slate-950 focus:shadow-2xl focus:outline-none focus:ring-4 focus:ring-emerald-400"
+            >
+                Lewati ke konten utama
+            </a>
             {conflictError && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
                     <div role="dialog" aria-modal="true" aria-labelledby="conflict-title" className="w-full max-w-md rounded-2xl border border-emerald-800 bg-[#0b3524] p-6 shadow-2xl">
@@ -613,7 +649,7 @@ export default function Dashboard() {
                 </nav>
             </aside>
 
-            <main id="beranda" className={`mx-auto max-w-[1440px] px-5 pb-8 pt-24 sm:px-8 lg:pt-12 lg:pr-12 ${sidebarOpen ? 'lg:pl-72' : 'lg:pl-28'}`}>
+            <main id="main-content" tabIndex={-1} className={`mx-auto max-w-[1440px] px-5 pb-8 pt-24 sm:px-8 lg:pt-12 lg:pr-12 outline-none ${sidebarOpen ? 'lg:pl-72' : 'lg:pl-28'}`}>
                 {showDashboard && <>
                 <div className="mb-12 grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
                     <div>
