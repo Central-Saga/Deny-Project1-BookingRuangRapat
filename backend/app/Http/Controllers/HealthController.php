@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -53,6 +54,8 @@ class HealthController extends Controller
             'status' => $isReady ? 'ok' : 'degraded',
             'health' => $isReady ? 'healthy' : 'unhealthy',
             'ready' => $isReady,
+            'ip' => request()->ip(),
+            'client_ip' => request()->ip(),
             'database' => $dbStatus,
             'db' => $dbStatus,
             'redis' => $redisStatus,
@@ -69,5 +72,13 @@ class HealthController extends Controller
         ];
 
         return response()->json($response, $isReady ? 200 : 503);
+    }
+
+    public function ip(Request $request): JsonResponse
+    {
+        return response()->json([
+            'ip' => $request->ip(),
+            'client_ip' => $request->ip(),
+        ]);
     }
 }

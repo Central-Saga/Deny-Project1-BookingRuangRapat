@@ -12,6 +12,7 @@ use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\UpdateBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Models\Booking;
+use App\Models\Room;
 use App\Services\Contracts\BookingServiceInterface;
 use Illuminate\Support\Facades\Gate;
 
@@ -55,6 +56,26 @@ class BookingController extends Controller
         Gate::authorize('view', $booking);
 
         return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
+    }
+
+    public function showNested(Room $room, Booking $booking)
+    {
+        Gate::authorize('view', $booking);
+
+        return (new BookingResource($booking->load(['room', 'user', 'approver'])))->additional(['status' => true, 'message' => 'Data booking berhasil dimuat.', 'errors' => []]);
+    }
+
+    public function roomBookings(PaginationRequest $request, Room $room)
+    {
+        $p = $request->validated();
+        $bookings = $this->bookingService->getBookings(
+            $request->user(),
+            $request->filled('date') ? $request->string('date')->toString() : null,
+            (int) $room->id,
+            (int) ($p['per_page'] ?? 25)
+        );
+
+        return BookingResource::collection($bookings)->additional(['success' => true, 'status' => true, 'message' => 'Data booking ruangan berhasil dimuat.', 'errors' => []]);
     }
 
     public function updateCollection(UpdateBookingRequest $request)

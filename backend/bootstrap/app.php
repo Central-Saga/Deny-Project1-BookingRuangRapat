@@ -3,14 +3,23 @@
 use App\Http\Middleware\CookieBearerTokenMiddleware;
 use App\Http\Middleware\IdempotencyMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
+use App\Http\Middleware\TrustProxies;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Auth\Middleware\Authorize;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,6 +29,24 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_AWS_ELB);
+
+        $middleware->priority([
+            TrustProxies::class,
+            Illuminate\Http\Middleware\TrustProxies::class,
+            SecurityHeadersMiddleware::class,
+            CookieBearerTokenMiddleware::class,
+            ValidateCsrfToken::class,
+            ThrottleRequests::class,
+            ThrottleRequestsWithRedis::class,
+            SubstituteBindings::class,
+            AuthenticatesRequests::class,
+            Authenticate::class,
+            EnsureFrontendRequestsAreStateful::class,
+            IdempotencyMiddleware::class,
+            Authorize::class,
+        ]);
+
         $middleware->append(SecurityHeadersMiddleware::class);
         $middleware->prependToGroup('api', CookieBearerTokenMiddleware::class);
         $middleware->prependToGroup('web', CookieBearerTokenMiddleware::class);
