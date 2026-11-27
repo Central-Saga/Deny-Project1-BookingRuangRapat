@@ -43,6 +43,18 @@ export default function BookingModal({ isOpen, rooms, initialBooking, initialDat
         }
     }, [initialBooking, initialDate, isOpen]);
 
+    // Audit 496 Parameter USE (Issue #186): Menutup modal booking dengan tombol Escape untuk aksesibilitas keyboard
+    useEffect(() => {
+        if (!isOpen) return;
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {

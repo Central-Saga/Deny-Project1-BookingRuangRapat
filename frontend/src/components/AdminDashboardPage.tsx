@@ -64,6 +64,18 @@ export default function AdminDashboardPage({ user }: { user: User }) {
 
     useEffect(() => { void loadData(); }, []);
 
+    useEffect(() => {
+        function handleGlobalKeyDown(event: KeyboardEvent) {
+            if (event.key === 'Escape') {
+                if (logoutConfirm) setLogoutConfirm(false);
+                if (rejectTarget) setRejectTarget(null);
+                if (roomDeleteTarget) setRoomDeleteTarget(null);
+            }
+        }
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [logoutConfirm, rejectTarget, roomDeleteTarget]);
+
     async function handleLogout() { setLogoutConfirm(false); try { setLoggingOut(true); await logout(); } finally { clearToken(); router.replace('/'); } }
 
     async function approve(id: number) { try { setProcessingId(id); await approveBooking(id); setToast('Booking berhasil disetujui.'); await loadData(); } catch (actionError: unknown) { setToast(actionError instanceof Error ? actionError.message : 'Gagal menyetujui booking.'); } finally { setProcessingId(null); } }
@@ -131,6 +143,12 @@ export default function AdminDashboardPage({ user }: { user: User }) {
     const nav: { id: Section; label: string; icon: keyof typeof iconPaths }[] = [{ id: 'overview', label: 'Ringkasan', icon: 'grid' }, { id: 'approvals', label: 'Persetujuan booking', icon: 'check' }, { id: 'rooms', label: 'Kelola ruangan', icon: 'door' }, { id: 'users', label: 'Manajemen pengguna', icon: 'grid' }, { id: 'history', label: 'Riwayat booking', icon: 'refresh' }];
 
     return <div className="admin-shell min-h-screen bg-[#072418] text-white selection:bg-[#f57c00] selection:text-slate-950">
+        <a
+            href="#admin-main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-[#f57c00] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-slate-950 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
+        >
+            Lewati ke konten utama
+        </a>
         <header className="sticky top-0 z-30 border-b border-emerald-800/60 bg-[#0a2e22]/90 shadow-xl shadow-black/30 backdrop-blur-md">
             <div className="mx-auto flex h-[76px] max-w-[1440px] items-center justify-between px-5 sm:px-8">
                 <div className="flex items-center gap-3.5">
@@ -168,12 +186,12 @@ export default function AdminDashboardPage({ user }: { user: User }) {
         </aside>
 
         {toast && (
-            <div className="fixed right-6 top-24 z-50 flex items-center gap-3 rounded-2xl border border-emerald-500/40 bg-[#0d2822] px-5 py-4 text-sm font-semibold text-emerald-200 shadow-2xl shadow-black/60 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300">
+            <div role="status" aria-live="polite" className="fixed right-6 top-24 z-50 flex items-center gap-3 rounded-2xl border border-emerald-500/40 bg-[#0d2822] px-5 py-4 text-sm font-semibold text-emerald-200 shadow-2xl shadow-black/60 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
                     <Icon name="check" className="h-4 w-4" />
                 </span>
                 <span className="flex-1">{toast}</span>
-                <button onClick={() => setToast(null)} className="ml-2 text-emerald-400/60 hover:text-white">&times;</button>
+                <button onClick={() => setToast(null)} className="ml-2 text-emerald-400/60 hover:text-white" aria-label="Tutup notifikasi">&times;</button>
             </div>
         )}
 
@@ -207,7 +225,7 @@ export default function AdminDashboardPage({ user }: { user: User }) {
             </Modal>
         )}
 
-        <main className={`mx-auto max-w-[1440px] px-5 pb-14 pt-28 sm:px-8 lg:pt-12 lg:pr-12 transition-all duration-300 ${sidebarOpen ? 'lg:pl-[19rem]' : 'lg:pl-32'}`}>
+        <main id="admin-main-content" tabIndex={-1} className={`mx-auto max-w-[1440px] px-5 pb-14 pt-28 sm:px-8 lg:pt-12 lg:pr-12 transition-all duration-300 outline-none ${sidebarOpen ? 'lg:pl-[19rem]' : 'lg:pl-32'}`}>
             {error && <div role="alert" className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-300 shadow-lg"><p>{error}</p><button type="button" onClick={() => void loadData()} className="mt-3 rounded-lg bg-[#f57c00] px-4 py-2 text-xs font-bold text-slate-950">Coba lagi</button></div>}
             {loading && <p className="mb-6 rounded-2xl border border-emerald-800 bg-[#0d2822] px-5 py-4 text-sm text-emerald-100/70 shadow-lg">Memuat data sistem...</p>}
 
@@ -257,9 +275,27 @@ export default function AdminDashboardPage({ user }: { user: User }) {
 }
 
 function Modal({ title, icon, tone = 'amber', onClose, children }: { title: string; icon: keyof typeof iconPaths; tone?: 'amber' | 'rose'; onClose: () => void; children: React.ReactNode }) {
+    useEffect(() => {
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}>
-            <div role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" className="w-full max-w-md rounded-3xl border border-emerald-800 bg-[#0d2822] p-7 shadow-2xl shadow-black/60" onClick={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-labelledby="admin-modal-title" className="relative w-full max-w-md rounded-3xl border border-emerald-800 bg-[#0d2822] p-7 shadow-2xl shadow-black/60" onClick={(e) => e.stopPropagation()}>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Tutup dialog"
+                    className="absolute right-5 top-5 rounded-lg p-2 text-emerald-300/70 hover:bg-emerald-900/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f57c00]"
+                >
+                    ✕
+                </button>
                 <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl ${tone === 'rose' ? 'bg-rose-500/20 text-rose-400' : 'bg-[#f57c00]/20 text-[#f59e0b]'}`}>
                     <Icon name={icon} className="h-6 w-6" />
                 </div>

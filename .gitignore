@@ -16,6 +16,8 @@
 /frontend/coverage/
 coverage/
 /frontend/test-results/
+/test-results/
+test-results/
 /frontend/playwright-report/
 /frontend/blob-report/
 
