@@ -13,6 +13,8 @@
 
 # testing
 /coverage
+/frontend/coverage/
+coverage/
 /frontend/test-results/
 /frontend/playwright-report/
 /frontend/blob-report/
