@@ -13,6 +13,8 @@
 
 # testing
 /coverage
+/frontend/coverage/
+coverage/
 /frontend/test-results/
 /frontend/playwright-report/
 /frontend/blob-report/
@@ -28,6 +30,8 @@
 # misc
 .DS_Store
 *.pem
+AGENTS.md
+**/AGENTS.md
 
 # debug
 npm-debug.log*

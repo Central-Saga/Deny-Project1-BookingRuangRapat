@@ -15,6 +15,8 @@ import {
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 export const TOKEN_KEY = 'meetspace_auth_token';
 
+let inMemoryToken: string | null = null;
+
 export function getToken(): string | null {
     if (typeof window !== 'undefined') {
         try {
@@ -32,7 +34,7 @@ export function getToken(): string | null {
             return decodeURIComponent(match[1]);
         }
     }
-    return null;
+    return inMemoryToken;
 }
 
 export function hasToken(): boolean {
@@ -40,6 +42,7 @@ export function hasToken(): boolean {
 }
 
 export function saveToken(token: string): void {
+    inMemoryToken = token;
     if (typeof window !== 'undefined') {
         try {
             window.localStorage.setItem(TOKEN_KEY, token);
@@ -54,6 +57,7 @@ export function saveToken(token: string): void {
 }
 
 export function clearToken(): void {
+    inMemoryToken = null;
     if (typeof window !== 'undefined') {
         try {
             window.localStorage.removeItem(TOKEN_KEY);
